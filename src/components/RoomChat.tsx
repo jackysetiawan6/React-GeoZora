@@ -204,7 +204,8 @@ export default function RoomChat({ room, isHost }: RoomChatProps) {
 			const channel = chatChannelRef.current;
 			if (channel) {
 				try {
-					await channel.send("broadcast", {
+					await channel.send({
+						type: "broadcast",
 						event: "message",
 						payload: message,
 					});
@@ -254,7 +255,8 @@ export default function RoomChat({ room, isHost }: RoomChatProps) {
 			// Broadcast reaction update
 			const channel = chatChannelRef.current;
 			if (!channel) throw new Error("Chat channel is not ready yet");
-			await channel.send("broadcast", {
+			await channel.send({
+				type: "broadcast",
 				event: "reaction",
 				payload: { messageId, reactions: newReactions },
 			});

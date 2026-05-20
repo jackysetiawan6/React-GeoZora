@@ -1376,7 +1376,7 @@ export default function Match({
 				/>
 
 				{isRoomMatch && h2hRoom && (
-					<ChatPanel room={h2hRoom} isHost={h2hIsHost} />
+					<ChatPanel room={h2hRoom} isHost={h2hIsHost} phase={phase} />
 				)}
 			</div>
 

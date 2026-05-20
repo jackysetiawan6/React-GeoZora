@@ -85,6 +85,20 @@ export default function RoomLobby({
 
 	const [localRoom, setLocalRoom] = useState<MatchRoom>(room);
 	const presenceId = user?.uid || guestPresenceKeyRef.current;
+
+	// Refs to ensure callbacks always read the absolute latest state without causing connection reconnects
+	const localIsReadyRef = useRef(localIsReady);
+	localIsReadyRef.current = localIsReady;
+
+	const isSyncingReadyRef = useRef(isSyncingReady);
+	isSyncingReadyRef.current = isSyncingReady;
+
+	const userRef = useRef(user);
+	userRef.current = user;
+
+	const isHostRef = useRef(isHost);
+	isHostRef.current = isHost;
+
 	const canStartMatch =
 		isHost &&
 		players.length >= 2 &&
@@ -220,32 +234,48 @@ export default function RoomLobby({
 					.forEach(p => activePlayers.push(p));
 
 				// If host is not in presence state and we are not the host, the room is disbanded
-				if (!hostFound && !isHost && players.length > 0) {
+				if (!hostFound && !isHostRef.current && players.length > 0) {
 					toast.error("The host has left the room. Moving back to home.");
 					onLeave();
 					return;
 				}
 
-				if (!hostFound && isHost) {
+				if (!hostFound && isHostRef.current) {
 					activePlayers.unshift({
-						id: user?.uid || room.player1_id,
-						name: `${user?.displayName || "Host"} (host)`,
+						id: userRef.current?.uid || room.player1_id,
+						name: `${userRef.current?.displayName || "Host"} (host)`,
 						avatar: `https://ui-avatars.com/api/?name=Host&background=3B82F6&color=fff`,
 						isHost: true,
-						isReady: localIsReady,
+						isReady: localIsReadyRef.current,
 					});
 				}
 
 				setPlayers(activePlayers.slice(0, MAX_PLAYERS));
 
 				// Clear syncing state when presence sync is confirmed
-				if (isSyncingReady) {
+				if (isSyncingReadyRef.current) {
 					const currentPlayer = activePlayers.find(
-						p => p.id === (user?.uid || guestPresenceKeyRef.current),
+						p => p.id === (userRef.current?.uid || guestPresenceKeyRef.current),
 					);
-					if (currentPlayer && currentPlayer.isReady === localIsReady) {
+					if (currentPlayer && currentPlayer.isReady === localIsReadyRef.current) {
 						setIsSyncingReady(false);
 					}
+				}
+			})
+			.on("broadcast", { event: "kick" }, payload => {
+				const { kickedUserId } = payload.payload;
+				if (presenceId === kickedUserId) {
+					toast.error("You were kicked from the room.");
+					onLeave();
+				}
+			})
+			.on("broadcast", { event: "room_updated" }, payload => {
+				const updatedRoom = payload.payload as MatchRoom;
+				setLocalRoom(updatedRoom);
+			})
+			.on("broadcast", { event: "room_started" }, () => {
+				if (!isHostRef.current) {
+					onStart();
 				}
 			})
 			.on(
@@ -261,7 +291,7 @@ export default function RoomLobby({
 						setLocalRoom(payload.new as MatchRoom);
 
 						// Check if current user has been kicked
-						const currentUserId = user?.uid || "guest_host";
+						const currentUserId = presenceId;
 						const updatedRoom = payload.new as MatchRoom;
 						const participants =
 							Array.isArray(updatedRoom.participants) ?
@@ -269,7 +299,7 @@ export default function RoomLobby({
 							:	[];
 
 						if (
-							!isHost &&
+							!isHostRef.current &&
 							!participants.includes(currentUserId) &&
 							players.length > 0
 						) {
@@ -278,7 +308,7 @@ export default function RoomLobby({
 							return;
 						}
 					}
-					if (payload.new.status === "active" && !isHost) {
+					if (payload.new.status === "active" && !isHostRef.current) {
 						onStart();
 					}
 				},
@@ -292,7 +322,7 @@ export default function RoomLobby({
 					filter: `id=eq.${room.id}`,
 				},
 				() => {
-					if (!isHost) {
+					if (!isHostRef.current) {
 						toast.error("The host has closed the room.");
 						onLeave();
 					}
@@ -301,19 +331,19 @@ export default function RoomLobby({
 			.subscribe(async status => {
 				if (status === "SUBSCRIBED") {
 					const avatar =
-						user?.avatarUrl ||
-						user?.photoURL ||
-						`https://ui-avatars.com/api/?name=${user?.displayName || (isHost ? "H" : "G")}&background=${isHost ? "3B82F6" : "10B981"}&color=fff`;
+						userRef.current?.avatarUrl ||
+						userRef.current?.photoURL ||
+						`https://ui-avatars.com/api/?name=${userRef.current?.displayName || (isHostRef.current ? "H" : "G")}&background=${isHostRef.current ? "3B82F6" : "10B981"}&color=fff`;
 					await channel.track({
 						id: presenceId,
 						name:
-							user?.displayName ?
-								`${user.displayName}${isHost ? " (host)" : ""}`
-							: isHost ? "Host (host)"
+							userRef.current?.displayName ?
+								`${userRef.current.displayName}${isHostRef.current ? " (host)" : ""}`
+							: isHostRef.current ? "Host (host)"
 							: "Guest Player",
 						avatar,
-						isHost,
-						isReady: localIsReady,
+						isHost: isHostRef.current,
+						isReady: localIsReadyRef.current,
 					});
 				}
 			});
@@ -324,16 +354,9 @@ export default function RoomLobby({
 		};
 	}, [
 		room.id,
-		isHost,
-		onStart,
-		user?.uid,
-		user?.displayName,
-		user?.avatarUrl,
-		user?.photoURL,
-		onLeave,
-		localIsReady,
-		isSyncingReady,
 		presenceId,
+		onStart,
+		onLeave,
 	]);
 
 	const handleLeave = async () => {
@@ -629,8 +652,12 @@ export default function RoomLobby({
 
 									{isHost && (
 										<button
-											disabled={generatingTargets || !canStartMatch}
+											disabled={generatingTargets}
 											onClick={async () => {
+												if (!canStartMatch) {
+													toast.error("Need 2 ready players");
+													return;
+												}
 												if (room.id) {
 													setGeneratingTargets(true);
 													try {
@@ -649,6 +676,15 @@ export default function RoomLobby({
 																targets: targets as any,
 															})
 															.eq("id", room.id);
+														
+														// Broadcast started match status
+														const channel = roomChannelRef.current;
+														if (channel) {
+															void channel.send({
+																type: "broadcast",
+																event: "room_started",
+															});
+														}
 														onStart();
 													} catch (e) {
 														toast.error("Failed to generate locations.");
@@ -657,18 +693,16 @@ export default function RoomLobby({
 													}
 												}
 											}}
-											className="h-11 px-8 rounded-xl bg-[var(--color-app-blue)] text-white font-bold hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 group disabled:opacity-75">
+											className={cn(
+												"h-11 px-8 rounded-xl bg-[var(--color-app-blue)] text-white font-bold hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 group",
+												(!canStartMatch || generatingTargets) && "opacity-50 cursor-not-allowed"
+											)}>
 											{generatingTargets ?
 												<>
 													<Loader2 className="w-4 h-4 animate-spin" />
 													Generating Maps...
 												</>
-											: !canStartMatch ?
-												<>
-													<Play className="w-4 h-4 fill-current" />
-													Need 2 ready players
-												</>
-											: <>
+											:	<>
 													<Play className="w-4 h-4 fill-current group-hover:scale-110 transition-transform" />
 													Start Match
 												</>
@@ -737,6 +771,15 @@ export default function RoomLobby({
 															);
 															if (success) {
 																toast.success(`Kicked ${p.name}`);
+																// Broadcast the kick event to all clients
+																const channel = roomChannelRef.current;
+																if (channel) {
+																	void channel.send({
+																		type: "broadcast",
+																		event: "kick",
+																		payload: { kickedUserId: p.id },
+																	});
+																}
 															} else {
 																toast.error("Failed to kick participant");
 															}
@@ -908,6 +951,16 @@ export default function RoomLobby({
 												selected_maps: mapsToSave as MapRegion[],
 											};
 											setLocalRoom(updatedRoom);
+
+											// Broadcast the updated settings to all clients
+											const channel = roomChannelRef.current;
+											if (channel) {
+												void channel.send({
+													type: "broadcast",
+													event: "room_updated",
+													payload: updatedRoom,
+												});
+											}
 
 											if (onUpdateSettings) {
 												onUpdateSettings({

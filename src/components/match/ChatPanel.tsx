@@ -23,9 +23,10 @@ import {
 interface ChatPanelProps {
 	room: MatchRoom;
 	isHost: boolean;
+	phase?: string;
 }
 
-export default function ChatPanel({ room, isHost }: ChatPanelProps) {
+export default function ChatPanel({ room, isHost, phase = "playing" }: ChatPanelProps) {
 	const { user } = useAuth();
 	const [messages, setMessages] = useState<RoomMessage[]>([]);
 	const [inputValue, setInputValue] = useState("");
@@ -207,7 +208,8 @@ export default function ChatPanel({ room, isHost }: ChatPanelProps) {
 			const channel = channelRef.current;
 			if (channel) {
 				try {
-					await channel.send("broadcast", {
+					await channel.send({
+						type: "broadcast",
 						event: "message",
 						payload: message,
 					});
@@ -255,7 +257,8 @@ export default function ChatPanel({ room, isHost }: ChatPanelProps) {
 			const channel = channelRef.current;
 			if (channel) {
 				try {
-					await channel.send("broadcast", {
+					await channel.send({
+						type: "broadcast",
 						event: "reaction",
 						payload: { messageId, reactions: newReactions },
 					});
@@ -278,13 +281,24 @@ export default function ChatPanel({ room, isHost }: ChatPanelProps) {
 	const visibleMessages = filterVisibleMessages(messages);
 	const userId = user?.uid || "guest";
 
+	const isFinished = phase === "finished";
+
 	if (!isExpanded) {
 		return (
 			<button
 				onClick={handleExpand}
-				className="fixed right-0 top-1/2 -translate-y-1/2 z-50 bg-[var(--color-app-blue)] text-white p-3 rounded-l-lg border border-r-0 border-[var(--color-app-border-light)] hover:bg-blue-500 transition-colors relative"
+				className={cn(
+					"fixed z-[250] bg-[var(--color-app-blue)] text-white p-3 border border-[var(--color-app-border-light)] hover:bg-blue-500 transition-all relative shadow-xl shadow-blue-500/10",
+					isFinished
+						? "right-0 top-1/2 -translate-y-1/2 rounded-l-lg border-r-0"
+						: "left-0 bottom-32 rounded-r-lg border-l-0"
+				)}
 				title="Open chat">
-				<ChevronLeft className="w-5 h-5" />
+				{isFinished ? (
+					<ChevronLeft className="w-5 h-5" />
+				) : (
+					<ChevronRight className="w-5 h-5" />
+				)}
 				{unreadCount > 0 && (
 					<div className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
 						{unreadCount > 9 ? "9+" : unreadCount}
@@ -295,7 +309,11 @@ export default function ChatPanel({ room, isHost }: ChatPanelProps) {
 	}
 
 	return (
-		<div className="fixed right-0 top-0 bottom-0 z-50 w-80 bg-[var(--color-app-panel)] border-l border-[var(--color-app-border-light)] flex flex-col shadow-2xl">
+		<div
+			className={cn(
+				"fixed z-[250] w-80 h-[360px] bg-[var(--color-app-panel)]/90 backdrop-blur-xl border border-[var(--color-app-border-light)] flex flex-col shadow-2xl rounded-2xl overflow-hidden transition-all duration-300",
+				isFinished ? "right-4 bottom-24" : "left-4 bottom-24"
+			)}>
 			{/* Header */}
 			<div className="px-4 py-3 border-b border-[var(--color-app-border-light)] flex items-center justify-between">
 				<h3 className="text-xs font-black uppercase tracking-widest text-[var(--color-app-text-muted)]">
@@ -305,7 +323,11 @@ export default function ChatPanel({ room, isHost }: ChatPanelProps) {
 					onClick={() => setIsExpanded(false)}
 					className="p-1 hover:bg-white/5 rounded transition-colors"
 					title="Minimize chat">
-					<ChevronRight className="w-4 h-4 text-[var(--color-app-text-muted)]" />
+					{isFinished ? (
+						<ChevronRight className="w-4 h-4 text-[var(--color-app-text-muted)]" />
+					) : (
+						<ChevronLeft className="w-4 h-4 text-[var(--color-app-text-muted)]" />
+					)}
 				</button>
 			</div>
 
