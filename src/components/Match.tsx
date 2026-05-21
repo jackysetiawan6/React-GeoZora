@@ -87,7 +87,9 @@ export default function Match({
 	const [phase, setPhase] = useState<GamePhase>("loading");
 	const [currentRoundIndex, setCurrentRoundIndex] = useState(0);
 
-	const [localRoom, setLocalRoom] = useState<MatchRoom | null | undefined>(h2hRoom);
+	const [localRoom, setLocalRoom] = useState<MatchRoom | null | undefined>(
+		h2hRoom,
+	);
 	useEffect(() => {
 		setLocalRoom(h2hRoom);
 	}, [h2hRoom]);
@@ -130,6 +132,50 @@ export default function Match({
 	>;
 	const [roundSubmissions, setRoundSubmissions] = useState<SubmissionsMap>({});
 	const roundSubmissionsRef = useRef<SubmissionsMap>({});
+	const revealStandings = useMemo(() => {
+		if (!isRoomMatch || Object.keys(allScores).length === 0) return [];
+
+		const currentRoundScores = roundSubmissions[currentRoundIndex] || {};
+		const entries = Object.entries(allScores).map(([uid, totalScore]) => {
+			const roundScore = currentRoundScores[uid]?.score ?? 0;
+			return {
+				uid,
+				label:
+					uid === user?.uid ? "You"
+					: uid === h2hOpponentId ? "Opponent"
+					: `Player #${uid.slice(0, 4)}`,
+				totalScore,
+				roundScore,
+			};
+		});
+
+		const currentSorted = [...entries].sort(
+			(a, b) => b.totalScore - a.totalScore,
+		);
+		const previousSorted = [...entries].sort(
+			(a, b) => b.totalScore - b.roundScore - (a.totalScore - a.roundScore),
+		);
+		const previousRankMap = new Map(
+			previousSorted.map((entry, index) => [entry.uid, index + 1]),
+		);
+
+		return currentSorted.map((entry, index) => {
+			const currentRank = index + 1;
+			const previousRank = previousRankMap.get(entry.uid) ?? currentRank;
+			return {
+				...entry,
+				rank: currentRank,
+				delta: previousRank - currentRank,
+			};
+		});
+	}, [
+		allScores,
+		currentRoundIndex,
+		h2hOpponentId,
+		isRoomMatch,
+		roundSubmissions,
+		user?.uid,
+	]);
 
 	const activeParticipantsRef = useRef<Set<string>>(new Set());
 
@@ -197,7 +243,12 @@ export default function Match({
 			noPanning: isRoomMatch ? !!localRoom?.no_panning : false,
 			noZooming: isRoomMatch ? !!localRoom?.no_zooming : false,
 		}),
-		[isRoomMatch, localRoom?.no_moving, localRoom?.no_panning, localRoom?.no_zooming],
+		[
+			isRoomMatch,
+			localRoom?.no_moving,
+			localRoom?.no_panning,
+			localRoom?.no_zooming,
+		],
 	);
 
 	const handleHeadingChange = useCallback((nextHeading: number) => {
@@ -360,9 +411,10 @@ export default function Match({
 
 		const saveStats = async () => {
 			if (!user) return;
-			const realDuration = matchStartTimeRef.current ?
-				Math.round((Date.now() - matchStartTimeRef.current) / 1000)
-			:	null;
+			const realDuration =
+				matchStartTimeRef.current ?
+					Math.round((Date.now() - matchStartTimeRef.current) / 1000)
+				:	null;
 
 			if (isH2H && localRoom && h2hOpponentId) {
 				const result: "win" | "loss" | "draw" =
@@ -383,11 +435,7 @@ export default function Match({
 				);
 
 				const isPlayer1 = localRoom.player1_id === user.uid;
-				const eloChange = calculateEloChange(
-					playerElo,
-					h2hOpponentElo,
-					result,
-				);
+				const eloChange = calculateEloChange(playerElo, h2hOpponentElo, result);
 
 				const playerExpGain = calculateExpGain(
 					"headToHead",
@@ -477,8 +525,6 @@ export default function Match({
 		roundCount,
 		roundSeconds,
 	]);
-
-
 
 	const resetMatchState = useCallback(() => {
 		clearTimers();
@@ -773,7 +819,11 @@ export default function Match({
 				} else {
 					// Attempt to just reload
 					if (msg.targets && localRoom) {
-						setLocalRoom(prev => prev ? { ...prev, targets: msg.targets as StreetViewTarget[] } : null);
+						setLocalRoom(prev =>
+							prev ?
+								{ ...prev, targets: msg.targets as StreetViewTarget[] }
+							:	null,
+						);
 					}
 					setPhase("loading");
 					resetMatchState();
@@ -1200,7 +1250,7 @@ export default function Match({
 				});
 
 				// Update local object so startSession has latest
-				setLocalRoom(prev => prev ? { ...prev, targets: newTargets } : null);
+				setLocalRoom(prev => (prev ? { ...prev, targets: newTargets } : null));
 			} else if (!h2hIsHost) {
 				// Just wait for host to re-seed and trigger start in the background.
 				// Actually, the channel broadcast 'reset_match' handles letting the client know.
@@ -1321,6 +1371,7 @@ export default function Match({
 							distanceMetric={user?.distanceMetric || "km"}
 							locationName={locationName}
 							onNext={handleNextRoundSkip}
+							standings={revealStandings}
 							opponentResults={Object.entries(
 								roundSubmissions[currentRoundIndex] || {},
 							)
@@ -1417,13 +1468,13 @@ export default function Match({
 					<div className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900/95 p-6 shadow-2xl backdrop-blur-md">
 						<h3 className="text-xl font-bold text-white mb-2">Leave Match?</h3>
 						<p className="text-slate-300 mb-6 text-sm leading-relaxed">
-							Are you sure you want to quit? You will forfeit the match and lose any progress.
+							Are you sure you want to quit? You will forfeit the match and lose
+							any progress.
 						</p>
 						<div className="flex justify-end gap-3">
 							<button
 								onClick={() => setShowQuitConfirm(false)}
-								className="px-4 py-2 rounded-lg border border-white/10 text-slate-300 hover:bg-white/5 transition-all text-sm font-semibold cursor-pointer"
-							>
+								className="px-4 py-2 rounded-lg border border-white/10 text-slate-300 hover:bg-white/5 transition-all text-sm font-semibold cursor-pointer">
 								Cancel
 							</button>
 							<button
@@ -1431,8 +1482,7 @@ export default function Match({
 									setShowQuitConfirm(false);
 									onBackToDashboard?.();
 								}}
-								className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-all text-sm font-semibold shadow-lg shadow-red-600/20 cursor-pointer"
-							>
+								className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-all text-sm font-semibold shadow-lg shadow-red-600/20 cursor-pointer">
 								Confirm Leave
 							</button>
 						</div>

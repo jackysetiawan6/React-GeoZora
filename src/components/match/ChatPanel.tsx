@@ -1,5 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { ChevronLeft, ChevronRight, Trash2, Send, Smile, X } from "lucide-react";
+import {
+	ChevronLeft,
+	ChevronRight,
+	Trash2,
+	Send,
+	Smile,
+	X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "../../lib/utils";
 import { supabase } from "../../lib/supabase";
@@ -36,7 +43,7 @@ export default function ChatPanel({
 	const { user } = useAuth();
 	const [messages, setMessages] = useState<RoomMessage[]>([]);
 	const [inputValue, setInputValue] = useState("");
-	const [isExpanded, setIsExpanded] = useState(true);
+	const [isExpanded, setIsExpanded] = useState(false);
 	const [unreadCount, setUnreadCount] = useState(0);
 	const [showEmojiPicker, setShowEmojiPicker] = useState<string | null>(null);
 	const [isSending, setIsSending] = useState(false);
@@ -288,19 +295,16 @@ export default function ChatPanel({
 			<button
 				onClick={handleExpand}
 				className={cn(
-					"fixed z-[250] bg-[var(--color-app-blue)] text-white p-3 border border-[var(--color-app-border-light)] hover:bg-blue-500 transition-all relative shadow-xl shadow-blue-500/10",
-					isFinished
-						? "right-0 top-1/2 -translate-y-1/2 rounded-l-lg border-r-0"
-						: "left-0 bottom-32 rounded-r-lg border-l-0"
+					"fixed z-[250] min-w-28 flex items-center gap-2 rounded-full bg-[var(--color-app-blue)] text-white px-4 py-3 border border-[var(--color-app-border-light)] hover:bg-blue-500 transition-all shadow-xl shadow-blue-500/10",
+					isFinished ? "right-6 top-1/2 -translate-y-1/2" : "left-6 bottom-24",
 				)}
 				title="Open chat">
-				{isFinished ? (
-					<ChevronLeft className="w-5 h-5" />
-				) : (
-					<ChevronRight className="w-5 h-5" />
-				)}
+				<ChevronRight className="w-4 h-4 shrink-0" />
+				<span className="text-xs font-black uppercase tracking-wider">
+					Chat
+				</span>
 				{unreadCount > 0 && (
-					<div className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center animate-pulse">
+					<div className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold min-w-5 h-5 px-1 rounded-full flex items-center justify-center animate-pulse">
 						{unreadCount > 9 ? "9+" : unreadCount}
 					</div>
 				)}
@@ -312,10 +316,10 @@ export default function ChatPanel({
 		<div
 			className={cn(
 				"flex flex-col overflow-hidden transition-all duration-300",
-				isFloating
-					? "fixed z-[250] w-80 h-[360px] bg-[var(--color-app-panel)]/90 backdrop-blur-xl border border-[var(--color-app-border-light)] shadow-2xl rounded-2xl"
-					: "w-full h-full min-h-[350px] bg-transparent",
-				isFloating && (isFinished ? "right-4 bottom-24" : "left-4 bottom-24")
+				isFloating ?
+					"fixed z-[250] w-80 h-[360px] bg-[var(--color-app-panel)]/90 backdrop-blur-xl border border-[var(--color-app-border-light)] shadow-2xl rounded-2xl"
+				:	"w-full h-full min-h-[350px] bg-transparent",
+				isFloating && (isFinished ? "right-4 bottom-24" : "left-4 bottom-24"),
 			)}>
 			{/* Header (only shown for floating chat or if desired) */}
 			{isFloating && (
@@ -327,35 +331,34 @@ export default function ChatPanel({
 						onClick={() => setIsExpanded(false)}
 						className="p-1 hover:bg-white/5 rounded transition-colors"
 						title="Minimize chat">
-						{isFinished ? (
+						{isFinished ?
 							<ChevronRight className="w-4 h-4 text-[var(--color-app-text-muted)]" />
-						) : (
-							<ChevronLeft className="w-4 h-4 text-[var(--color-app-text-muted)]" />
-						)}
+						:	<ChevronLeft className="w-4 h-4 text-[var(--color-app-text-muted)]" />
+						}
 					</button>
 				</div>
 			)}
 
 			{/* Messages List */}
 			<div className="flex-1 overflow-y-auto no-scrollbar p-3 space-y-3">
-				{visibleMessages.length === 0 ? (
+				{visibleMessages.length === 0 ?
 					<div className="flex items-center justify-center h-full">
 						<div className="text-[var(--color-app-text-muted)] text-xs text-center">
 							No messages yet. Be the first to chat!
 						</div>
 					</div>
-				) : (
-					visibleMessages.map(message => (
+				:	visibleMessages.map(message => (
 						<div
 							key={message.id}
-							className={cn("group", message.is_system && "flex justify-center")}
-						>
-							{message.is_system ? (
+							className={cn(
+								"group",
+								message.is_system && "flex justify-center",
+							)}>
+							{message.is_system ?
 								<div className="text-[10px] text-[var(--color-app-text-muted)] italic text-center px-2 py-1">
 									{message.content}
 								</div>
-							) : (
-								<div className="bg-[var(--color-app-bg)]/40 rounded-lg p-2.5 space-y-1.5 hover:bg-[var(--color-app-bg)]/60 transition-colors">
+							:	<div className="bg-[var(--color-app-bg)]/40 rounded-lg p-2.5 space-y-1.5 hover:bg-[var(--color-app-bg)]/60 transition-colors">
 									<div className="flex items-start justify-between gap-2">
 										<div className="flex items-start gap-2 flex-1 min-w-0">
 											{/* Avatars: always show for embedded, or option for floating */}
@@ -368,7 +371,7 @@ export default function ChatPanel({
 													alt={message.username}
 													className={cn(
 														"rounded-full object-cover shrink-0",
-														isFloating ? "w-5 h-5" : "w-6 h-6"
+														isFloating ? "w-5 h-5" : "w-6 h-6",
 													)}
 												/>
 											)}
@@ -387,48 +390,54 @@ export default function ChatPanel({
 													)}
 												</div>
 												<p className="text-white/80 break-words mt-0.5 text-xs">
-													{message.is_deleted ? (
+													{message.is_deleted ?
 														<span className="italic text-[var(--color-app-text-muted)]">
 															(deleted)
 														</span>
-													) : (
-														message.content
-													)}
+													:	message.content}
 												</p>
 											</div>
 										</div>
 
-										{!message.is_deleted && (userId === message.user_id || isHost) && (
-											<button
-												onClick={() => deleteMessage(message.id)}
-												className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-500/20 rounded text-red-400 shrink-0"
-												title="Delete message"
-												aria-label="Delete message"
-											>
-												<Trash2 className="w-3 h-3" />
-											</button>
-										)}
+										{!message.is_deleted &&
+											(userId === message.user_id || isHost) && (
+												<button
+													onClick={() => deleteMessage(message.id)}
+													className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-500/20 rounded text-red-400 shrink-0"
+													title="Delete message"
+													aria-label="Delete message">
+													<Trash2 className="w-3 h-3" />
+												</button>
+											)}
 									</div>
 
 									{/* Reactions */}
-									{!message.is_deleted && Object.keys(message.reactions).length > 0 && (
-										<div className="flex flex-wrap gap-1 pt-1">
-											{getReactionCounts(message.reactions).map(([emoji, count]) => (
-												<button
-													key={emoji}
-													onClick={() => handleReaction(message.id, emoji)}
-													className={cn(
-														"px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors",
-														userHasReacted(message.reactions, userId, emoji)
-															? "bg-[var(--color-app-blue)]/30 border border-[var(--color-app-blue)]/50 text-white"
-															: "bg-white/5 border border-white/10 text-white/70 hover:bg-white/10"
-													)}
-												>
-													{emoji} {count}
-												</button>
-											))}
-										</div>
-									)}
+									{!message.is_deleted &&
+										Object.keys(message.reactions).length > 0 && (
+											<div className="flex flex-wrap gap-1 pt-1">
+												{getReactionCounts(message.reactions).map(
+													([emoji, count]) => (
+														<button
+															key={emoji}
+															onClick={() => handleReaction(message.id, emoji)}
+															className={cn(
+																"px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors",
+																(
+																	userHasReacted(
+																		message.reactions,
+																		userId,
+																		emoji,
+																	)
+																) ?
+																	"bg-[var(--color-app-blue)]/30 border border-[var(--color-app-blue)]/50 text-white"
+																:	"bg-white/5 border border-white/10 text-white/70 hover:bg-white/10",
+															)}>
+															{emoji} {count}
+														</button>
+													),
+												)}
+											</div>
+										)}
 
 									{/* Reaction Picker */}
 									{!message.is_deleted && showEmojiPicker === message.id && (
@@ -437,8 +446,7 @@ export default function ChatPanel({
 												<button
 													key={emoji}
 													onClick={() => handleReaction(message.id, emoji)}
-													className="text-sm hover:scale-125 transition-transform"
-												>
+													className="text-sm hover:scale-125 transition-transform">
 													{emoji}
 												</button>
 											))}
@@ -449,19 +457,18 @@ export default function ChatPanel({
 										<button
 											onClick={() =>
 												setShowEmojiPicker(
-													showEmojiPicker === message.id ? null : message.id
+													showEmojiPicker === message.id ? null : message.id,
 												)
 											}
-											className="text-[9px] text-[var(--color-app-blue)] hover:text-blue-400 font-bold uppercase"
-										>
+											className="text-[9px] text-[var(--color-app-blue)] hover:text-blue-400 font-bold uppercase">
 											{showEmojiPicker === message.id ? "Close" : "React"}
 										</button>
 									)}
 								</div>
-							)}
+							}
 						</div>
 					))
-				)}
+				}
 				<div ref={messagesEndRef} />
 			</div>
 
@@ -485,8 +492,7 @@ export default function ChatPanel({
 					<button
 						onClick={sendMessage}
 						disabled={isSending || !inputValue.trim()}
-						className="bg-[var(--color-app-blue)] text-white px-3 py-1.5 rounded-lg hover:bg-blue-500 disabled:opacity-50 transition-colors flex items-center justify-center"
-					>
+						className="bg-[var(--color-app-blue)] text-white px-3 py-1.5 rounded-lg hover:bg-blue-500 disabled:opacity-50 transition-colors flex items-center justify-center">
 						<Send className="w-3.5 h-3.5" />
 					</button>
 				</div>

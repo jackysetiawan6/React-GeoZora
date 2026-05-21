@@ -191,10 +191,6 @@ export default function Header({
 			};
 
 			const fetchNotifications = async () => {
-				if (user.isAnonymous) {
-					setNotifications(GUEST_NOTIFICATIONS);
-					return;
-				}
 				const { data, error } = await supabase
 					.from("notifications")
 					.select("*")
@@ -210,7 +206,6 @@ export default function Header({
 							read: n.is_read,
 						})),
 					);
-				}
 			};
 
 			fetchStats();
@@ -251,7 +246,7 @@ export default function Header({
 				supabase.removeChannel(channel);
 			};
 		} else {
-			setNotifications(GUEST_NOTIFICATIONS);
+			setNotifications([]);
 			setUserStats({ exp: 0, elo: 1300 });
 		}
 	}, [user]);
@@ -273,7 +268,7 @@ export default function Header({
 	// ── Actions ──
 
 	const markAllRead = async () => {
-		if (user && !user.isAnonymous) {
+		if (user) {
 			await supabase
 				.from("notifications")
 				.update({ is_read: true })
@@ -284,7 +279,7 @@ export default function Header({
 	};
 
 	const deleteNotif = async (id: string) => {
-		if (user && !user.isAnonymous) {
+		if (user) {
 			await supabase.from("notifications").delete().eq("id", id);
 		}
 
