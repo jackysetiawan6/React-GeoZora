@@ -38,16 +38,7 @@ import {
 	saveMatchSession,
 } from "./lib/matchSessionPersistence";
 
-type AppTab =
-	| "Home"
-	| "Leaderboards"
-	| "Setup"
-	| "Matchmaking"
-	| "Match"
-	| "RoomLobby"
-	| "Profile"
-	| "Admin"
-	| "History";
+import type { AppTab } from "./lib/types";
 
 export default function App() {
 	const { user } = useAuth();
@@ -189,14 +180,15 @@ export default function App() {
 			setLoadingMessage("Setting up room on server...");
 			try {
 				// Cleanup existing waiting rooms by this user via secure RPC
-				const myId = user?.uid || "guest_host";
+				if (!user) return;
+				const myId = user.uid;
 				await cleanupUserRooms(myId);
 
 				const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
 
 				const room = await createRoom(
 					roomId,
-					user?.uid || "guest_host",
+					user.uid,
 					null, // No guest yet
 					[], // Targets will be generated on Start
 					customRounds,
@@ -295,7 +287,8 @@ export default function App() {
 	useEffect(() => {
 		// If we have an active creator room but we aren't in lobby or match anymore, cleanup
 		if (creatorRoom && activeTab !== "RoomLobby" && activeTab !== "Match") {
-			const myId = user?.uid || "guest_host";
+			if (!user) return;
+			const myId = user.uid;
 			const isHost = creatorRoom.player1_id === myId;
 			if (isHost && creatorRoom.status === "waiting") {
 				void deleteRoom(creatorRoom.id, myId);
@@ -305,59 +298,65 @@ export default function App() {
 		}
 	}, [activeTab, creatorRoom, user]);
 
-	useEffect(() => {
-		const initializeApp = async () => {
-			try {
-				await Promise.all([
-					testSupabaseConnection(),
-					loadMapRegions(),
-					loadGameModes(),
-				]);
+	const initializeApp = useCallback(async () => {
+		setIsLoading(true);
+		setLoadingError(null);
+		try {
+			await Promise.all([
+				testSupabaseConnection(),
+				loadMapRegions(),
+				loadGameModes(),
+			]);
 
-				// Initialize creator room defaults if no saved settings exist
-				const saved = localStorage.getItem("geozora_creator_settings");
-				if (!saved && MODE_CONFIGS["creatorRoom"]) {
-					setCustomRounds(MODE_CONFIGS["creatorRoom"].rounds);
-					setCustomSeconds(MODE_CONFIGS["creatorRoom"].seconds);
-				} else if (saved) {
-					try {
-						const parsed = JSON.parse(saved);
-						setCustomRounds(parsed.customRounds);
-						setCustomSeconds(parsed.customSeconds);
-						setNoMoving(parsed.noMoving);
-						setNoPanning(parsed.noPanning);
-						setNoZooming(parsed.noZooming);
-					} catch (e) {}
-				}
-			} catch (err: any) {
-				console.error("Initialization error:", err);
-				setLoadingError(
-					err?.message ||
-						(err instanceof Error ?
-							err.message
-						:	"Failed to initialize application."),
-				);
-			} finally {
-				setIsLoading(false);
+			// Initialize creator room defaults if no saved settings exist
+			const saved = localStorage.getItem("geozora_creator_settings");
+			if (!saved && MODE_CONFIGS["creatorRoom"]) {
+				setCustomRounds(MODE_CONFIGS["creatorRoom"].rounds);
+				setCustomSeconds(MODE_CONFIGS["creatorRoom"].seconds);
+			} else if (saved) {
+				try {
+					const parsed = JSON.parse(saved);
+					setCustomRounds(parsed.customRounds);
+					setCustomSeconds(parsed.customSeconds);
+					setNoMoving(parsed.noMoving);
+					setNoPanning(parsed.noPanning);
+					setNoZooming(parsed.noZooming);
+				} catch (e) {}
 			}
-		};
-
-		initializeApp();
+		} catch (err: any) {
+			console.error("Initialization error:", err);
+			setLoadingError(
+				err?.message ||
+					(err instanceof Error ?
+						err.message
+					:	"Failed to initialize application."),
+			);
+		} finally {
+			setIsLoading(false);
+		}
 	}, []);
+
+	useEffect(() => {
+		void initializeApp();
+	}, [initializeApp]);
 
 	// Save creator room settings to local storage when modified
 	useEffect(() => {
 		if (!isLoading && selectedMode === "creatorRoom") {
-			localStorage.setItem(
-				"geozora_creator_settings",
-				JSON.stringify({
-					customRounds,
-					customSeconds,
-					noMoving,
-					noPanning,
-					noZooming,
-				}),
-			);
+			try {
+				localStorage.setItem(
+					"geozora_creator_settings",
+					JSON.stringify({
+						customRounds,
+						customSeconds,
+						noMoving,
+						noPanning,
+						noZooming,
+					}),
+				);
+			} catch (e) {
+				console.warn("Failed to save creator settings to localStorage:", e);
+			}
 		}
 	}, [
 		customRounds,
@@ -437,14 +436,20 @@ export default function App() {
 			<div className="h-screen w-screen bg-[var(--color-app-bg)] text-[var(--color-app-text)] flex items-center justify-center font-sans relative overflow-hidden">
 				<div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-red-500/20 blur-[120px] rounded-full pointer-events-none" />
 
-				<div className="flex flex-col items-center gap-4 text-center max-w-md px-6 z-10">
-					<div className="w-16 h-16 bg-red-500/10 text-red-400 rounded-full flex items-center justify-center mb-2">
+				<div className="flex flex-col items-center gap-4 text-center max-w-md px-6 z-10 animate-in fade-in zoom-in-95 duration-350">
+					<div className="w-16 h-16 bg-red-500/10 text-red-400 rounded-full flex items-center justify-center mb-2 shadow-[0_0_20px_rgba(239,68,68,0.2)]">
 						<span className="text-2xl">⚠️</span>
 					</div>
 					<h2 className="text-2xl font-bold tracking-tight text-[var(--color-app-text)]">
 						Connection Failed
 					</h2>
-					<p className="text-[var(--color-app-text-muted)]">{loadingError}</p>
+					<p className="text-[var(--color-app-text-muted)] mb-2">{loadingError}</p>
+					<button
+						onClick={() => void initializeApp()}
+						className="px-6 py-2.5 bg-red-600 hover:bg-red-700 active:scale-98 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-red-600/20 cursor-pointer"
+					>
+						Try Again
+					</button>
 				</div>
 			</div>
 		);
@@ -551,8 +556,7 @@ export default function App() {
 							<RoomLobby
 								room={creatorRoom}
 								isHost={
-									creatorRoom.player1_id === user?.uid ||
-									(!user && creatorRoom.player1_id === "guest_host")
+									creatorRoom.player1_id === user?.uid
 								}
 								selectedMaps={selectedMaps}
 								onUpdateSettings={s => {
@@ -576,9 +580,8 @@ export default function App() {
 								}}
 								onStart={() => setActiveTab("Match")}
 								onLeave={() => {
-									if (creatorRoom.status === "waiting") {
-										const myId = user?.uid || "guest_host";
-										void deleteRoom(creatorRoom.id, myId);
+									if (creatorRoom.status === "waiting" && user) {
+										void deleteRoom(creatorRoom.id, user.uid);
 									}
 									setCreatorRoom(null);
 									setActiveTab("Setup");
@@ -609,8 +612,7 @@ export default function App() {
 							h2hIsHost={
 								h2hIsHost ||
 								(creatorRoom ?
-									creatorRoom.player1_id === user?.uid ||
-									(!user && creatorRoom.player1_id === "guest_host")
+									creatorRoom.player1_id === user?.uid
 								:	false)
 							}
 						/>

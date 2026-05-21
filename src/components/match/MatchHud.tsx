@@ -138,9 +138,9 @@ export default function MatchHud({
 
         <div
           className={cn(
-            'pointer-events-auto rounded-2xl border backdrop-blur-xl px-5 py-3 flex items-center gap-3 shadow-[0_18px_45px_rgba(0,0,0,0.35)] transition-colors',
+            'pointer-events-auto rounded-2xl border backdrop-blur-xl px-5 py-3 flex items-center gap-3 shadow-[0_18px_45px_rgba(0,0,0,0.35)] transition-all duration-300',
             remainingSec <= 10
-              ? 'border-red-400/40 bg-red-500/15'
+              ? 'border-red-500/50 bg-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse text-red-200'
               : 'border-[var(--color-app-border)] bg-[var(--color-app-panel)]/80'
           )}
         >
@@ -155,7 +155,7 @@ export default function MatchHud({
             <Clock
               className={cn(
                 'w-5 h-5',
-                remainingSec <= 10 ? 'text-red-300' : 'text-[var(--color-app-blue)]'
+                remainingSec <= 10 ? 'text-red-200' : 'text-[var(--color-app-blue)]'
               )}
             />
           </div>

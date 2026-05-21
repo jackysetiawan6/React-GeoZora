@@ -55,6 +55,7 @@ export default function MatchSidebar({
   mapPreference = 'roadmap',
   userAvatar = null,
   streetViewLoading = false,
+  isSubmitting = false,
 }: {
   mode: GameModeId;
   currentRoundIndex: number;
@@ -90,6 +91,7 @@ export default function MatchSidebar({
   mapPreference?: string;
   userAvatar?: string | null;
   streetViewLoading?: boolean;
+  isSubmitting?: boolean;
 }) {
   const { user } = useAuth();
   const isCreator = mode === 'creatorRoom';
@@ -126,9 +128,9 @@ export default function MatchSidebar({
         }
       : phase === 'playing'
       ? {
-          label: 'Submit Guess',
+          label: isSubmitting ? 'Submitting...' : 'Submit Guess',
           onClick: onSubmit,
-          disabled: !guess,
+          disabled: !guess || isSubmitting,
           style: 'blue'
         }
       : phase === 'waiting_for_others' || phase === 'reveal'
@@ -388,7 +390,8 @@ export default function MatchSidebar({
               selectedRegions={selectedMaps}
               mapType={mapPreference}
               userAvatar={userAvatar}
-              disabled={streetViewLoading}
+              disabled={streetViewLoading || isSubmitting}
+              submitting={isSubmitting}
             />
 
             {phase === 'reveal' && target && (

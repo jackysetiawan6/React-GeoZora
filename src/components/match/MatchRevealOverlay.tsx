@@ -20,7 +20,24 @@ type MatchRevealOverlayProps = {
   distanceMetric: string;
   locationName: string;
   opponentResults?: Array<{ guess: LatLng; target: LatLng; userId?: string; playerIndex: number; round?: number }>;
+  onNext?: () => void;
 };
+
+function getQualitativeFeedback(distanceKm: number, score: number): { text: string; colorClass: string } {
+  if (distanceKm < 0.25 || score >= 4950) {
+    return { text: 'Bullseye!', colorClass: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' };
+  } else if (distanceKm < 5 || score >= 4800) {
+    return { text: 'Excellent!', colorClass: 'text-green-400 bg-green-500/10 border-green-500/20' };
+  } else if (distanceKm < 50 || score >= 4500) {
+    return { text: 'Close!', colorClass: 'text-teal-400 bg-teal-500/10 border-teal-500/20' };
+  } else if (distanceKm < 250 || score >= 3500) {
+    return { text: 'Good Guess!', colorClass: 'text-blue-400 bg-blue-500/10 border-blue-500/20' };
+  } else if (distanceKm < 1000 || score >= 2000) {
+    return { text: 'Not bad!', colorClass: 'text-amber-400 bg-amber-500/10 border-amber-500/20' };
+  } else {
+    return { text: 'Way off!', colorClass: 'text-rose-400 bg-rose-500/10 border-rose-500/20' };
+  }
+}
 
 export default function MatchRevealOverlay({
   currentRoundIndex,
@@ -34,7 +51,10 @@ export default function MatchRevealOverlay({
   distanceMetric,
   locationName,
   opponentResults,
+  onNext,
 }: MatchRevealOverlayProps) {
+  const feedback = getQualitativeFeedback(currentResult.distanceKm, currentResult.score);
+
   return (
     <div className="absolute inset-0 z-[100] bg-[#070B12] animate-in fade-in duration-500">
       <div className="w-full h-full relative">
@@ -75,6 +95,11 @@ export default function MatchRevealOverlay({
               </div>
 
               <div className="flex items-center gap-3 shrink-0 w-full md:w-auto">
+                {/* Qualitative Feedback */}
+                <div className={`hidden sm:flex items-center justify-center rounded-2xl px-5 py-3 border ${feedback.colorClass} font-black text-sm uppercase tracking-wider`}>
+                  {feedback.text}
+                </div>
+
                 <div className="flex-1 md:flex-none bg-[var(--color-app-panel)] rounded-2xl px-6 py-3 border border-[var(--color-app-border)]">
                   <div className="text-[var(--color-app-text-muted)] text-[9px] uppercase tracking-widest mb-0.5 font-bold">
                     Distance
@@ -92,6 +117,15 @@ export default function MatchRevealOverlay({
                     +{currentResult.score.toLocaleString()}
                   </div>
                 </div>
+
+                {onNext && (
+                  <button
+                    onClick={onNext}
+                    className="flex-grow md:flex-none rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500/20 px-6 py-4.5 font-black text-sm tracking-wide shadow-lg shadow-emerald-950/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    Next Round →
+                  </button>
+                )}
               </div>
             </div>
           </div>

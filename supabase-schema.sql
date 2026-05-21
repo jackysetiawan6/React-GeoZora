@@ -673,3 +673,47 @@ CREATE POLICY "Users can insert match history"
   );
 
 GRANT INSERT ON public.match_history TO authenticated;
+
+-- Function to find a room securely by code from the server side
+CREATE OR REPLACE FUNCTION public.find_room_by_code(p_code text)
+RETURNS SETOF public.match_rooms AS $$
+BEGIN
+  RETURN QUERY
+  SELECT *
+  FROM public.match_rooms
+  WHERE status = 'waiting'
+    AND UPPER(id) LIKE UPPER(p_code) || '%'
+  LIMIT 1;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+GRANT EXECUTE ON FUNCTION public.find_room_by_code(text) TO authenticated, anon;
+
+-- Function to atomically increment player stats
+CREATE OR REPLACE FUNCTION public.increment_player_stats(
+  p_user_id text,
+  p_exp_gain integer,
+  p_elo_change integer,
+  p_avg_score double precision
+)
+RETURNS jsonb AS $$
+DECLARE
+  v_res jsonb;
+BEGIN
+  UPDATE public.profiles
+  SET exp = COALESCE(exp, 0) + p_exp_gain,
+      elo = GREATEST(0, COALESCE(elo, 1300) + p_elo_change),
+      games_played = COALESCE(games_played, 0) + 1,
+      last_avg_score = p_avg_score,
+      updated_at = now()
+  WHERE id = p_user_id
+  RETURNING jsonb_build_object(
+    'id', id,
+    'exp', exp,
+    'elo', elo,
+    'last_avg_score', last_avg_score,
+    'games_played', games_played
+  ) INTO v_res;
+  RETURN v_res;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+GRANT EXECUTE ON FUNCTION public.increment_player_stats(text, integer, integer, double precision) TO authenticated, anon;

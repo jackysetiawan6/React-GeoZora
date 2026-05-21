@@ -12,6 +12,7 @@ import {
 	Loader2,
 	Check,
 	Trash2,
+	AlertTriangle,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -73,6 +74,7 @@ export default function RoomLobby({
 	const [generatingTargets, setGeneratingTargets] = useState(false);
 	const [isEditingSettings, setIsEditingSettings] = useState(false);
 	const [isConfirmingClose, setIsConfirmingClose] = useState(false);
+	const [playerToKick, setPlayerToKick] = useState<{ id: string; name: string } | null>(null);
 	const [localIsReady, setLocalIsReady] = useState(isHost); // Host is ready by default
 	const [isSyncingReady, setIsSyncingReady] = useState(false); // Track ready status sync state
 	const MAX_PLAYERS = 30;
@@ -360,7 +362,8 @@ export default function RoomLobby({
 	]);
 
 	const handleLeave = async () => {
-		const myId = user?.uid || "guest_host";
+		if (!user) return;
+		const myId = user.uid;
 		clearMatchSession();
 		if (isHost) {
 			if (!isConfirmingClose) {
@@ -762,34 +765,10 @@ export default function RoomLobby({
 											</div>
 											{isHost && !p.isHost && (
 												<button
-													onClick={async () => {
-														try {
-															const success = await kickParticipantFromRoom(
-																room.id,
-																p.id,
-																user?.uid || "guest_host",
-															);
-															if (success) {
-																toast.success(`Kicked ${p.name}`);
-																// Broadcast the kick event to all clients
-																const channel = roomChannelRef.current;
-																if (channel) {
-																	void channel.send({
-																		type: "broadcast",
-																		event: "kick",
-																		payload: { kickedUserId: p.id },
-																	});
-																}
-															} else {
-																toast.error("Failed to kick participant");
-															}
-														} catch (err) {
-															console.error("Kick error:", err);
-															toast.error("Failed to kick participant");
-														}
-													}}
+													onClick={() => setPlayerToKick({ id: p.id, name: p.name })}
 													className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-500/20 rounded-lg text-red-400 shrink-0"
-													title="Kick this player">
+													title="Kick this player"
+													aria-label={`Kick ${p.name}`}>
 													<Trash2 className="w-4 h-4" />
 												</button>
 											)}
@@ -1095,6 +1074,62 @@ export default function RoomLobby({
 										);
 									})}
 							</div>
+						</div>
+					</div>
+				</div>
+			)}
+			{playerToKick && (
+				<div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+					<div className="bg-[var(--color-app-panel)] border border-[var(--color-app-border-light)] rounded-3xl w-full max-w-md shadow-2xl p-6 relative text-[var(--color-app-text)] text-center animate-in fade-in zoom-in-95 duration-200">
+						<div className="w-16 h-16 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+							<AlertTriangle className="w-8 h-8 animate-pulse" />
+						</div>
+						<h3 className="text-lg font-black text-white mb-2">
+							Kick Player?
+						</h3>
+						<p className="text-sm text-[var(--color-app-text-muted)] mb-6">
+							Are you sure you want to kick <span className="text-white font-bold">{playerToKick.name}</span> from the lobby?
+						</p>
+						<div className="flex gap-3">
+							<button
+								onClick={() => setPlayerToKick(null)}
+								className="flex-1 h-12 rounded-xl border border-[var(--color-app-border-light)] bg-white/5 font-bold hover:bg-white/10 transition-colors"
+							>
+								Cancel
+							</button>
+							<button
+								onClick={async () => {
+									const p = playerToKick;
+									setPlayerToKick(null);
+									try {
+										const success = await kickParticipantFromRoom(
+											room.id,
+											p.id,
+											user?.uid || "",
+										);
+										if (success) {
+											toast.success(`Kicked ${p.name}`);
+											// Broadcast the kick event to all clients
+											const channel = roomChannelRef.current;
+											if (channel) {
+												void channel.send({
+													type: "broadcast",
+													event: "kick",
+													payload: { kickedUserId: p.id },
+												});
+											}
+										} else {
+											toast.error("Failed to kick participant");
+										}
+									} catch (err) {
+										console.error("Kick error:", err);
+										toast.error("Failed to kick participant");
+									}
+								}}
+								className="flex-1 h-12 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold shadow-lg shadow-red-950/20 transition-colors"
+							>
+								Kick Player
+							</button>
 						</div>
 					</div>
 				</div>

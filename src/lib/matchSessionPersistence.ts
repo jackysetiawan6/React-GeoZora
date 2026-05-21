@@ -29,7 +29,11 @@ export function saveMatchSession(
 		lastUpdatedAt: new Date().toISOString(),
 	};
 
-	localStorage.setItem(SESSION_KEY, JSON.stringify(payload));
+	try {
+		localStorage.setItem(SESSION_KEY, JSON.stringify(payload));
+	} catch (e) {
+		console.warn("Failed to save match session to localStorage:", e);
+	}
 }
 
 export function loadMatchSession(): MatchSessionSnapshot | null {

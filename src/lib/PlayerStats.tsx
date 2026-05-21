@@ -245,36 +245,12 @@ export async function updateStatsAfterClassic(
 	const expGain = calculateExpGain("classic", totalScore);
 	const avgScore = calculateAvgScore(totalScore, rounds);
 
-	const updatePayload: any = {
-		exp: cur.exp + expGain,
-		games_played: cur.games_played + 1,
-	};
-
-	// Try updating with last_avg_score first
-	let { data, error } = await supabase
-		.from("profiles")
-		.update({ ...updatePayload, last_avg_score: avgScore })
-		.eq("id", userId)
-		.select("id, exp, elo, last_avg_score, games_played")
-		.single();
-
-	if (
-		error &&
-		(error.message?.includes("last_avg_score") ||
-			error.code === "PGRST200" ||
-			error.code === "PGRST204")
-	) {
-		// Fallback if column does not exist
-		const fallbackUpdate = await supabase
-			.from("profiles")
-			.update(updatePayload)
-			.eq("id", userId)
-			.select("id, exp, elo, games_played")
-			.single();
-
-		data = fallbackUpdate.data as any;
-		error = fallbackUpdate.error;
-	}
+	const { data, error } = await supabase.rpc("increment_player_stats", {
+		p_user_id: userId,
+		p_exp_gain: expGain,
+		p_elo_change: 0,
+		p_avg_score: avgScore,
+	});
 
 	if (error || !data) {
 		console.error("updateStatsAfterClassic error:", error);
@@ -350,34 +326,12 @@ export async function updateStatsAfterH2H(
 	const expGain = calculateExpGain("headToHead", totalScore, result);
 	const avgScore = calculateAvgScore(totalScore, rounds);
 
-	const updatePayload: any = {
-		exp: cur.exp + expGain,
-		elo: Math.max(0, cur.elo + eloChange),
-		games_played: cur.games_played + 1,
-	};
-
-	let { data, error } = await supabase
-		.from("profiles")
-		.update({ ...updatePayload, last_avg_score: avgScore })
-		.eq("id", userId)
-		.select("id, exp, elo, last_avg_score, games_played")
-		.single();
-
-	if (
-		error &&
-		(error.message?.includes("last_avg_score") ||
-			error.code === "PGRST200" ||
-			error.code === "PGRST204")
-	) {
-		const fallbackUpdate = await supabase
-			.from("profiles")
-			.update(updatePayload)
-			.eq("id", userId)
-			.select("id, exp, elo, games_played")
-			.single();
-		data = fallbackUpdate.data as any;
-		error = fallbackUpdate.error;
-	}
+	const { data, error } = await supabase.rpc("increment_player_stats", {
+		p_user_id: userId,
+		p_exp_gain: expGain,
+		p_elo_change: eloChange,
+		p_avg_score: avgScore,
+	});
 
 	if (error || !data) {
 		console.error("updateStatsAfterH2H error:", error);

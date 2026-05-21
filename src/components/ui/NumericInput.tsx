@@ -61,6 +61,7 @@ export function NumericInput({
 					step={step}
 					disabled={disabled}
 					placeholder={placeholder}
+					aria-invalid={error ? "true" : "false"}
 					className={cn(
 						"flex-1 bg-transparent text-[var(--color-app-text)] font-mono text-lg font-bold outline-none",
 						"border border-[var(--color-app-border-light)] rounded-xl px-4 py-3 transition-colors w-full min-w-0",
@@ -75,7 +76,7 @@ export function NumericInput({
 					</span>
 				)}
 			</div>
-			{error && <p className="text-xs text-red-500/70 mt-1">{error}</p>}
+			{error && <p className="text-xs text-red-500/70 mt-1" role="alert">{error}</p>}
 		</label>
 	);
 }

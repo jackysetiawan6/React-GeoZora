@@ -26,14 +26,17 @@ export function Toggle({
 			<div className="relative inline-flex items-center flex-shrink-0">
 				<input
 					type="checkbox"
+					role="switch"
+					aria-checked={checked}
 					checked={checked}
 					onChange={e => !disabled && onChange(e.target.checked)}
 					disabled={disabled}
-					className="sr-only"
+					className="sr-only peer"
 				/>
 				<div
 					className={cn(
 						"w-11 h-6 rounded-full transition-colors duration-200 ease-in-out border flex items-center justify-start",
+						"peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-[var(--color-app-blue)] peer-focus-visible:outline-offset-2",
 						checked ?
 							"bg-[var(--color-app-blue)] border-[var(--color-app-blue)]"
 						:	"bg-[var(--color-app-bg)] border-[var(--color-app-border)]",

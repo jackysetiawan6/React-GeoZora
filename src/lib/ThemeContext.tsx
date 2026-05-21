@@ -30,7 +30,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             
           if (!error && data && data.theme_preference) {
             savedTheme = data.theme_preference as Theme;
-            localStorage.setItem('theme', savedTheme);
+            try {
+              localStorage.setItem('theme', savedTheme);
+            } catch (e) {
+              console.warn("Failed to save theme to localStorage:", e);
+            }
           }
         } catch (err) {
           console.error("Error fetching theme from Supabase:", err);
@@ -50,7 +54,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const toggleTheme = async () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
+    try {
+      localStorage.setItem('theme', newTheme);
+    } catch (e) {
+      console.warn("Failed to save theme to localStorage:", e);
+    }
     document.documentElement.classList.toggle('light-theme', newTheme === 'light');
 
     if (user && !user.isAnonymous) {

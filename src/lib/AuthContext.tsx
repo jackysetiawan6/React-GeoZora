@@ -30,6 +30,9 @@ const AuthContext = createContext<AuthContextType>({
   signInAsGuest: async () => {}, 
   signOut: async () => {},
   logActivity: async () => {},
+  refreshUser: async () => {},
+  updateAvatar: async () => {},
+  updateSettings: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {

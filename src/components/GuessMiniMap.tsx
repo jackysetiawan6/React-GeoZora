@@ -32,6 +32,7 @@ type Props = {
   userAvatar?: string | null;
   allResults?: RoundResult[];
   disabled?: boolean;
+  submitting?: boolean;
   opponentResults?: Array<{
     guess: LatLng;
     target: LatLng;
@@ -199,6 +200,7 @@ export default function GuessMiniMap({
   userAvatar = null,
   allResults = [],
   disabled = false,
+  submitting = false,
   opponentResults = [],
 }: Props) {
   const mapRef = useRef<HTMLDivElement | null>(null);
@@ -271,9 +273,24 @@ export default function GuessMiniMap({
       backgroundColor: '#dbeafe',
     });
 
+    let dragStartPos = { x: 0, y: 0 };
+    const mousedownListener = map.addListener('mousedown', (e: any) => {
+      if (e.domEvent) {
+        dragStartPos = { x: e.domEvent.clientX, y: e.domEvent.clientY };
+      }
+    });
+
     const clickListener = map.addListener('click', (e: any) => {
       if (phaseRef.current !== 'playing' || disabledRef.current) return;
       if (!e.latLng) return;
+      
+      if (e.domEvent) {
+        const dx = e.domEvent.clientX - dragStartPos.x;
+        const dy = e.domEvent.clientY - dragStartPos.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance > 5) return; // Ignore click if drag was more than 5px
+      }
+
       const currentConfig = getMapViewConfigForSelectedRegions(
         selectedRegionsRef.current
       );
@@ -332,6 +349,7 @@ export default function GuessMiniMap({
     }, 0);
 
     return () => {
+      mousedownListener?.remove?.();
       clickListener?.remove?.();
       dragEndListener?.remove?.();
       guessMarker.current?.setMap?.(null);
@@ -438,10 +456,51 @@ export default function GuessMiniMap({
           map: mapInstance.current,
           title: 'Your guess',
           content: avatarContainer,
+          gmpDraggable: phase === 'playing' && !disabled && !submitting,
         });
+
+      guessMarker.current.addListener('dragend', (e: any) => {
+        if (phaseRef.current !== 'playing' || disabledRef.current) return;
+        if (e.latLng) {
+          const currentConfig = getMapViewConfigForSelectedRegions(
+            selectedRegionsRef.current
+          );
+          const pickedPosition = clampLatLng(
+            {
+              lat: e.latLng.lat(),
+              lng: e.latLng.lng(),
+            },
+            currentConfig.bounds
+          );
+          onPickRef.current(pickedPosition);
+
+          // Trigger drop bounce animation
+          const element = guessMarker.current.content;
+          if (element) {
+            element.classList.remove('animate-bounce');
+            void element.offsetWidth;
+            element.classList.add('animate-bounce');
+            setTimeout(() => {
+              element.classList.remove('animate-bounce');
+            }, 1000);
+          }
+        }
+      });
+    } else {
+      // Trigger simple pop effect
+      const element = guessMarker.current.content;
+      if (element) {
+        element.classList.remove('animate-bounce');
+        void element.offsetWidth;
+        element.classList.add('animate-bounce');
+        setTimeout(() => {
+          element.classList.remove('animate-bounce');
+        }, 1000);
+      }
     }
+    guessMarker.current.gmpDraggable = phase === 'playing' && !disabled && !submitting;
     guessMarker.current.position = safeGuess;
-  }, [guess, viewConfig]);
+  }, [guess, viewConfig, phase, disabled, submitting, userAvatar]);
 
   useEffect(() => {
     if (!mapInstance.current || !window.google?.maps) return;
@@ -778,9 +837,12 @@ export default function GuessMiniMap({
           disabled && 'opacity-50 grayscale'
         )}
       />
-      {disabled && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/5 backdrop-blur-[2px]">
-          <div className="w-8 h-8 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+      {(disabled || submitting || phase === 'waiting_for_others') && (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px] transition-all duration-300">
+          <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin mb-2" />
+          <span className="text-white text-xs font-semibold tracking-wide px-3 py-1 bg-black/30 rounded-full border border-white/10">
+            {phase === 'waiting_for_others' ? 'Waiting for other players...' : 'Submitting guess...'}
+          </span>
         </div>
       )}
     </div>

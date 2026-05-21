@@ -21,6 +21,7 @@ import {
 	saveMatchHistory,
 	calculateEloChange,
 	calculateExpGain,
+	fetchPlayerStats,
 } from "../lib/PlayerStats";
 import {
 	subscribeToRoom,
@@ -85,6 +86,14 @@ export default function Match({
 
 	const [phase, setPhase] = useState<GamePhase>("loading");
 	const [currentRoundIndex, setCurrentRoundIndex] = useState(0);
+
+	const [localRoom, setLocalRoom] = useState<MatchRoom | null | undefined>(h2hRoom);
+	useEffect(() => {
+		setLocalRoom(h2hRoom);
+	}, [h2hRoom]);
+
+	const currentRoundIndexRef = useRef(currentRoundIndex);
+	currentRoundIndexRef.current = currentRoundIndex;
 	const [roundCount, setRoundCount] = useState(5);
 	const [roundSeconds, setRoundSeconds] = useState(60);
 	const [remainingSec, setRemainingSec] = useState(60);
@@ -133,11 +142,29 @@ export default function Match({
 	const nextRoundTimerRef = useRef<number | null>(null);
 	const hintTimerRef = useRef<number | null>(null);
 	const isSubmittingRef = useRef(false);
+	const [isSubmitting, setIsSubmitting] = useState(false);
 	const channelRef = useRef<ReturnType<typeof subscribeToRoom> | null>(null);
 	const presenceMonitorRef = useRef<RoomPresenceMonitor | null>(null);
+	const [showQuitConfirm, setShowQuitConfirm] = useState(false);
 
-	const isH2H = selectedMode === "headToHead" && h2hRoom !== null;
-	const isCreator = selectedMode === "creatorRoom" && h2hRoom !== null;
+	const handleQuitClick = () => {
+		if (phase === "finished") {
+			onBackToDashboard?.();
+		} else {
+			setShowQuitConfirm(true);
+		}
+	};
+
+	const handleNextRoundSkip = () => {
+		if (nextRoundTimerRef.current) {
+			window.clearTimeout(nextRoundTimerRef.current);
+			nextRoundTimerRef.current = null;
+		}
+		void goToNextRound();
+	};
+
+	const isH2H = selectedMode === "headToHead" && localRoom !== null;
+	const isCreator = selectedMode === "creatorRoom" && localRoom !== null;
 	const isRoomMatch = isH2H || isCreator;
 
 	const selectedMapsKey = useMemo(() => selectedMaps.join("|"), [selectedMaps]);
@@ -147,8 +174,8 @@ export default function Match({
 	}, [selectedMapsKey]);
 
 	const roomTargets = useMemo(() => {
-		return h2hRoom?.targets ?? [];
-	}, [h2hRoom?.targets]);
+		return localRoom?.targets ?? [];
+	}, [localRoom?.targets]);
 
 	const {
 		resetQueue,
@@ -165,11 +192,11 @@ export default function Match({
 
 	const streetViewRules = useMemo(
 		() => ({
-			noMoving: isRoomMatch ? !!h2hRoom?.no_moving : false,
-			noPanning: isRoomMatch ? !!h2hRoom?.no_panning : false,
-			noZooming: isRoomMatch ? !!h2hRoom?.no_zooming : false,
+			noMoving: isRoomMatch ? !!localRoom?.no_moving : false,
+			noPanning: isRoomMatch ? !!localRoom?.no_panning : false,
+			noZooming: isRoomMatch ? !!localRoom?.no_zooming : false,
 		}),
-		[isRoomMatch, h2hRoom?.no_moving, h2hRoom?.no_panning, h2hRoom?.no_zooming],
+		[isRoomMatch, localRoom?.no_moving, localRoom?.no_panning, localRoom?.no_zooming],
 	);
 
 	const handleHeadingChange = useCallback((nextHeading: number) => {
@@ -196,55 +223,8 @@ export default function Match({
 		onGoogleLoaded: handleGoogleLoaded,
 	});
 
-	useEffect(() => {
-		const handleContextMenu = (e: MouseEvent) => {
-			e.preventDefault();
-			toast.error("Right-click is disabled to prevent cheating.");
-		};
-
-		const handleKeyDown = (e: KeyboardEvent) => {
-			if (e.key === "F12") {
-				e.preventDefault();
-				toast.error("Developer tools are disabled.");
-			}
-			if (
-				(e.ctrlKey || e.metaKey) &&
-				(e.shiftKey || e.altKey) &&
-				e.key.toLowerCase() === "i"
-			) {
-				e.preventDefault();
-				toast.error("Developer tools are disabled.");
-			}
-			if (
-				(e.ctrlKey || e.metaKey) &&
-				(e.shiftKey || e.altKey) &&
-				e.key.toLowerCase() === "j"
-			) {
-				e.preventDefault();
-				toast.error("Developer tools are disabled.");
-			}
-			if (
-				(e.ctrlKey || e.metaKey) &&
-				(e.shiftKey || e.altKey) &&
-				e.key.toLowerCase() === "c"
-			) {
-				e.preventDefault();
-				toast.error("Developer tools are disabled.");
-			}
-			if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "u") {
-				e.preventDefault();
-				toast.error("Viewing source is disabled.");
-			}
-		};
-
-		document.addEventListener("contextmenu", handleContextMenu);
-		document.addEventListener("keydown", handleKeyDown);
-
-		return () => {
-			document.removeEventListener("contextmenu", handleContextMenu);
-			document.removeEventListener("keydown", handleKeyDown);
-		};
-	}, []);
+	// Note: Anti-cheat keyboard shortcut and right-click blocks have been removed
+	// to respect user control and standard browser accessibility.
 
 	useEffect(() => {
 		activeParticipantsRef.current = activeParticipants;
@@ -257,7 +237,7 @@ export default function Match({
 	useEffect(() => {
 		if (!user?.uid) return;
 
-		if (!isRoomMatch || !h2hRoom) {
+		if (!isRoomMatch || !localRoom) {
 			if (phase === "finished") {
 				clearMatchSession();
 			}
@@ -271,7 +251,7 @@ export default function Match({
 
 		saveMatchSession({
 			userId: user.uid,
-			roomId: h2hRoom.id,
+			roomId: localRoom.id,
 			mode: isCreator ? "creatorRoom" : "headToHead",
 			tab: "Match",
 			isHost: h2hIsHost,
@@ -282,9 +262,9 @@ export default function Match({
 		isCreator,
 		isRoomMatch,
 		h2hIsHost,
-	h2hOpponentElo,
-	h2hOpponentId,
-	h2hRoom,
+		h2hOpponentElo,
+		h2hOpponentId,
+		localRoom,
 		phase,
 		user?.uid,
 	]);
@@ -346,23 +326,23 @@ export default function Match({
 	const getResolvedRoundCount = useCallback(
 		(mode: GameModeId) => {
 			if (isRoomMatch) {
-				return h2hRoom?.total_rounds ?? getRoundCount(mode, customRounds);
+				return localRoom?.total_rounds ?? getRoundCount(mode, customRounds);
 			}
 
 			return getRoundCount(mode, customRounds);
 		},
-		[customRounds, h2hRoom?.total_rounds, isRoomMatch],
+		[customRounds, localRoom?.total_rounds, isRoomMatch],
 	);
 
 	const getResolvedRoundSeconds = useCallback(
 		(mode: GameModeId) => {
 			if (isRoomMatch) {
-				return h2hRoom?.round_seconds ?? getRoundSeconds(mode, customSeconds);
+				return localRoom?.round_seconds ?? getRoundSeconds(mode, customSeconds);
 			}
 
 			return getRoundSeconds(mode, customSeconds);
 		},
-		[customSeconds, h2hRoom?.round_seconds, isRoomMatch],
+		[customSeconds, localRoom?.round_seconds, isRoomMatch],
 	);
 
 	useEffect(() => {
@@ -378,11 +358,16 @@ export default function Match({
 		setStatsSaved(true);
 
 		const saveStats = async () => {
-			if (isH2H && h2hRoom && h2hOpponentId) {
+			if (!user) return;
+			if (isH2H && localRoom && h2hOpponentId) {
 				const result: "win" | "loss" | "draw" =
 					totalScore > opponentScore ? "win"
 					: totalScore < opponentScore ? "loss"
 					: "draw";
+
+				// Fetch player ELO before update
+				const playerStats = await fetchPlayerStats(user.uid);
+				const playerElo = playerStats?.elo ?? 1300;
 
 				await updateStatsAfterH2H(
 					user.uid,
@@ -392,10 +377,10 @@ export default function Match({
 					result,
 				);
 
-				const isPlayer1 = h2hRoom.player1_id === user.uid;
+				const isPlayer1 = localRoom.player1_id === user.uid;
 				const eloChange = calculateEloChange(
-					isPlayer1 ? h2hOpponentElo : h2hOpponentElo,
-					isPlayer1 ? h2hOpponentElo : h2hOpponentElo,
+					playerElo,
+					h2hOpponentElo,
 					result,
 				);
 
@@ -413,20 +398,20 @@ export default function Match({
 				);
 
 				await saveMatchHistory(
-					h2hRoom.player1_id || user.uid,
-					h2hRoom.player2_id || h2hOpponentId,
+					localRoom.player1_id || user.uid,
+					localRoom.player2_id || h2hOpponentId,
 					user.displayName || "Player",
 					"Opponent",
 					isPlayer1 ? totalScore : opponentScore,
 					isPlayer1 ? opponentScore : totalScore,
 					"headToHead",
 					stableSelectedMaps.map(m => m),
-					h2hRoom.total_rounds,
-					h2hRoom.round_seconds,
+					localRoom.total_rounds,
+					localRoom.round_seconds,
 					{
-						no_moving: h2hRoom.no_moving,
-						no_panning: h2hRoom.no_panning,
-						no_zooming: h2hRoom.no_zooming,
+						no_moving: localRoom.no_moving,
+						no_panning: localRoom.no_panning,
+						no_zooming: localRoom.no_zooming,
 					},
 					{
 						player1: isPlayer1 ? playerExpGain : opponentExpGain,
@@ -436,7 +421,7 @@ export default function Match({
 						player1: isPlayer1 ? eloChange : -eloChange,
 						player2: isPlayer1 ? -eloChange : eloChange,
 					},
-					h2hRoom.id,
+					localRoom.id,
 				);
 			} else if (selectedMode === "classic") {
 				const expGain = calculateExpGain("classic", totalScore);
@@ -452,7 +437,7 @@ export default function Match({
 					"classic",
 					stableSelectedMaps.map(m => m),
 					customRounds,
-					customRounds > 0 ? 60 : 60,
+					getResolvedRoundSeconds("classic"),
 					{
 						no_moving: false,
 						no_panning: false,
@@ -477,228 +462,14 @@ export default function Match({
 		totalScore,
 		user?.uid,
 		user?.displayName,
-		h2hRoom,
+		localRoom,
 		h2hOpponentId,
 		stableSelectedMaps,
 		customRounds,
+		getResolvedRoundSeconds,
 	]);
 
-	useEffect(() => {
-		if (!isRoomMatch || !h2hRoom) return;
 
-		// Create and start presence monitor for detecting disconnections
-		const monitorRef = createRoomPresenceMonitor(
-			h2hRoom.id,
-			event => {
-				// Disconnection detected
-				if (selectedMode === "headToHead" && event.userId === h2hOpponentId) {
-					const isMidMatch =
-						phaseRef.current === "playing" ||
-						phaseRef.current === "reveal" ||
-						phaseRef.current === "waiting_for_others";
-
-					if (isMidMatch && event.wasActive) {
-						// Opponent was active and now disconnected
-						if (channelRef.current) {
-							broadcastToRoom(channelRef.current, {
-								type: "game_over",
-								player1Score: totalScoreRef.current,
-								player2Score: opponentScoreRef.current,
-								winnerId: user?.uid ?? null,
-								reason: "Opponent disconnected.",
-							} as any);
-
-							const finalScoresMap: Record<string, number> = {
-								...allScoresRef.current,
-							};
-							if (user?.uid) finalScoresMap[user.uid] = totalScoreRef.current;
-							finalScoresMap[h2hOpponentId] = -1;
-
-							void updateRoom(h2hRoom.id, {
-								status: "completed",
-								winner_id: user?.uid ?? null,
-								scores: finalScoresMap,
-							});
-						}
-						setMatchEndedReason("Opponent disconnected.");
-						setPhase("finished");
-					}
-				} else if (selectedMode === "creatorRoom" && event.wasActive) {
-					// In creator room, notify about participant disconnect
-					const isMidMatch =
-						phaseRef.current === "playing" ||
-						phaseRef.current === "reveal" ||
-						phaseRef.current === "waiting_for_others";
-
-					if (isMidMatch) {
-						toast.info(`Participant ${event.userId} disconnected.`);
-					}
-				}
-			},
-			30000, // 30-second timeout
-			15000, // Check every 15 seconds (optimized from 5s, reduced CPU polling)
-		);
-
-		presenceMonitorRef.current = monitorRef;
-
-		// Presence channel for tracking active users during the match
-		const presenceCh = supabase.channel(`match_presence_${h2hRoom.id}`, {
-			config: {
-				presence: {
-					key: user?.uid || `guest_${Math.random().toString(36).slice(2, 8)}`,
-				},
-			},
-		});
-
-		presenceCh
-			.on("presence", { event: "sync" }, () => {
-				const state = presenceCh.presenceState();
-				const actives = new Set<string>();
-				Object.keys(state).forEach(k => {
-					const presenceElements = state[k] as any[];
-					if (presenceElements && presenceElements.length > 0) {
-						actives.add(presenceElements[0].id || k);
-					}
-				});
-				setActiveParticipants(actives);
-				activeParticipantsRef.current = actives;
-
-				// Update monitor with active participants
-				actives.forEach(id => {
-					monitorRef.updateLastSeen(id);
-				});
-
-				setAllScores(prev => {
-					let dirty = false;
-					const next = { ...prev };
-					actives.forEach(id => {
-						if (typeof next[id] !== "number") {
-							next[id] = 0;
-							dirty = true;
-						}
-					});
-					if (dirty) allScoresRef.current = next;
-					return dirty ? next : prev;
-				});
-
-				if (selectedMode === "headToHead" && h2hRoom && h2hOpponentId) {
-					const isMidMatch =
-						phaseRef.current === "playing" ||
-						phaseRef.current === "reveal" ||
-						phaseRef.current === "waiting_for_others";
-					if (
-						isMidMatch &&
-						!actives.has(h2hOpponentId) &&
-						actives.has(user?.uid || "guest_host")
-					) {
-						if (channelRef.current) {
-							broadcastToRoom(channelRef.current, {
-								type: "game_over",
-								player1Score: totalScoreRef.current,
-								player2Score: opponentScoreRef.current,
-								winnerId: user?.uid ?? null,
-								reason: "Opponent disconnected.",
-							} as any);
-
-							const finalScoresMap: Record<string, number> = {
-								...allScoresRef.current,
-							};
-							if (user?.uid) finalScoresMap[user.uid] = totalScoreRef.current;
-							finalScoresMap[h2hOpponentId] = -1;
-
-							void updateRoom(h2hRoom.id, {
-								status: "completed",
-								winner_id: user?.uid ?? null,
-								scores: finalScoresMap,
-							});
-						}
-						setMatchEndedReason("Opponent disconnected.");
-						setPhase("finished");
-					}
-				}
-			})
-			.subscribe(async status => {
-				if (status === "SUBSCRIBED") {
-					await presenceCh.track({ isPlaying: true });
-				}
-			});
-
-		const ch = subscribeToRoom(h2hRoom.id, (msg: H2HMessage) => {
-			if (msg.type === "guess_submitted") {
-				if (msg.round < currentRoundIndex - 1) return; // Prevent very old round messages
-
-				setRoundSubmissions(prev => {
-					const next = { ...prev };
-					if (!next[msg.round]) next[msg.round] = {};
-					next[msg.round] = {
-						...next[msg.round],
-						[msg.userId]: { score: msg.score, guess: msg.guess },
-					};
-					roundSubmissionsRef.current = next;
-					return next;
-				});
-
-				setAllScores(prev => {
-					const next = {
-						...prev,
-						[msg.userId]: (prev[msg.userId] || 0) + msg.score,
-					};
-
-					allScoresRef.current = next;
-					return next;
-				});
-
-				if (msg.userId !== user?.uid) {
-					setOpponentScore(prev => {
-						const next = prev + msg.score;
-						opponentScoreRef.current = next;
-						return next;
-					});
-
-					setOpponentRoundDone(true);
-				}
-			}
-
-			if (msg.type === "game_over") {
-				if ((msg as any).reason) {
-					setMatchEndedReason((msg as any).reason);
-				}
-				setPhase("finished");
-			}
-
-			if (msg.type === "reset_match") {
-				if (selectedMode === "creatorRoom") {
-					onRoomReset?.();
-				} else {
-					// Attempt to just reload
-					if (msg.targets && h2hRoom)
-						h2hRoom.targets = msg.targets as StreetViewTarget[];
-					setPhase("loading");
-					resetMatchState();
-					void startSession(selectedMode);
-				}
-			}
-		});
-
-		channelRef.current = ch;
-
-		return () => {
-			unsubscribeRoom(ch);
-			supabase.removeChannel(presenceCh);
-			if (presenceMonitorRef.current) {
-				presenceMonitorRef.current.stop();
-				presenceMonitorRef.current = null;
-			}
-			channelRef.current = null;
-		};
-	}, [
-		h2hRoom,
-		isRoomMatch,
-		user?.uid,
-		currentRoundIndex,
-		selectedMode,
-		h2hOpponentId,
-	]);
 
 	const resetMatchState = useCallback(() => {
 		clearTimers();
@@ -724,6 +495,7 @@ export default function Match({
 		allScoresRef.current = {};
 
 		isSubmittingRef.current = false;
+		setIsSubmitting(false);
 
 		resetQueue();
 		resetBuffers();
@@ -772,6 +544,7 @@ export default function Match({
 				setLocationName("");
 				setGuess(null);
 				isSubmittingRef.current = false;
+				setIsSubmitting(false);
 
 				await initFirstRound({
 					round: 1,
@@ -801,6 +574,225 @@ export default function Match({
 		],
 	);
 
+	useEffect(() => {
+		if (!isRoomMatch || !localRoom) return;
+
+		// Create and start presence monitor for detecting disconnections
+		const monitorRef = createRoomPresenceMonitor(
+			localRoom.id,
+			event => {
+				// Disconnection detected
+				if (selectedMode === "headToHead" && event.userId === h2hOpponentId) {
+					const isMidMatch =
+						phaseRef.current === "playing" ||
+						phaseRef.current === "reveal" ||
+						phaseRef.current === "waiting_for_others";
+
+					if (isMidMatch && event.wasActive) {
+						// Opponent was active and now disconnected
+						if (channelRef.current) {
+							broadcastToRoom(channelRef.current, {
+								type: "game_over",
+								player1Score: totalScoreRef.current,
+								player2Score: opponentScoreRef.current,
+								winnerId: user?.uid ?? null,
+								reason: "Opponent disconnected.",
+							} as any);
+
+							const finalScoresMap: Record<string, number> = {
+								...allScoresRef.current,
+							};
+							if (user?.uid) finalScoresMap[user.uid] = totalScoreRef.current;
+							finalScoresMap[h2hOpponentId] = -1;
+
+							void updateRoom(localRoom.id, {
+								status: "completed",
+								winner_id: user?.uid ?? null,
+								scores: finalScoresMap,
+							});
+						}
+						setMatchEndedReason("Opponent disconnected.");
+						setPhase("finished");
+					}
+				} else if (selectedMode === "creatorRoom" && event.wasActive) {
+					// In creator room, notify about participant disconnect
+					const isMidMatch =
+						phaseRef.current === "playing" ||
+						phaseRef.current === "reveal" ||
+						phaseRef.current === "waiting_for_others";
+
+					if (isMidMatch) {
+						toast.info(`Participant ${event.userId} disconnected.`);
+					}
+				}
+			},
+			30000, // 30-second timeout
+			15000, // Check every 15 seconds (optimized from 5s, reduced CPU polling)
+		);
+
+		presenceMonitorRef.current = monitorRef;
+
+		// Presence channel for tracking active users during the match
+		const presenceCh = supabase.channel(`match_presence_${localRoom.id}`, {
+			config: {
+				presence: {
+					key: user?.uid || `guest_${Math.random().toString(36).slice(2, 8)}`,
+				},
+			},
+		});
+
+		presenceCh
+			.on("presence", { event: "sync" }, () => {
+				const state = presenceCh.presenceState();
+				const actives = new Set<string>();
+				Object.keys(state).forEach(k => {
+					const presenceElements = state[k] as any[];
+					if (presenceElements && presenceElements.length > 0) {
+						actives.add(presenceElements[0].id || k);
+					}
+				});
+				setActiveParticipants(actives);
+				activeParticipantsRef.current = actives;
+
+				// Update monitor with active participants
+				actives.forEach(id => {
+					monitorRef.updateLastSeen(id);
+				});
+
+				setAllScores(prev => {
+					let dirty = false;
+					const next = { ...prev };
+					actives.forEach(id => {
+						if (typeof next[id] !== "number") {
+							next[id] = 0;
+							dirty = true;
+						}
+					});
+					if (dirty) allScoresRef.current = next;
+					return dirty ? next : prev;
+				});
+
+				if (selectedMode === "headToHead" && localRoom && h2hOpponentId) {
+					const isMidMatch =
+						phaseRef.current === "playing" ||
+						phaseRef.current === "reveal" ||
+						phaseRef.current === "waiting_for_others";
+					if (
+						isMidMatch &&
+						!actives.has(h2hOpponentId) &&
+						actives.has(user?.uid || "")
+					) {
+						if (channelRef.current) {
+							broadcastToRoom(channelRef.current, {
+								type: "game_over",
+								player1Score: totalScoreRef.current,
+								player2Score: opponentScoreRef.current,
+								winnerId: user?.uid ?? null,
+								reason: "Opponent disconnected.",
+							} as any);
+
+							const finalScoresMap: Record<string, number> = {
+								...allScoresRef.current,
+							};
+							if (user?.uid) finalScoresMap[user.uid] = totalScoreRef.current;
+							finalScoresMap[h2hOpponentId] = -1;
+
+							void updateRoom(localRoom.id, {
+								status: "completed",
+								winner_id: user?.uid ?? null,
+								scores: finalScoresMap,
+							});
+						}
+						setMatchEndedReason("Opponent disconnected.");
+						setPhase("finished");
+					}
+				}
+			})
+			.subscribe(async status => {
+				if (status === "SUBSCRIBED") {
+					await presenceCh.track({ isPlaying: true });
+				}
+			});
+
+		const ch = subscribeToRoom(localRoom.id, (msg: H2HMessage) => {
+			if (msg.type === "guess_submitted") {
+				if (msg.round < currentRoundIndexRef.current - 1) return; // Prevent very old round messages
+
+				setRoundSubmissions(prev => {
+					const next = { ...prev };
+					if (!next[msg.round]) next[msg.round] = {};
+					next[msg.round] = {
+						...next[msg.round],
+						[msg.userId]: { score: msg.score, guess: msg.guess },
+					};
+					roundSubmissionsRef.current = next;
+					return next;
+				});
+
+				setAllScores(prev => {
+					const next = {
+						...prev,
+						[msg.userId]: (prev[msg.userId] || 0) + msg.score,
+					};
+
+					allScoresRef.current = next;
+					return next;
+				});
+
+				if (msg.userId !== user?.uid) {
+					setOpponentScore(prev => {
+						const next = prev + msg.score;
+						opponentScoreRef.current = next;
+						return next;
+					});
+
+					setOpponentRoundDone(true);
+				}
+			}
+
+			if (msg.type === "game_over") {
+				if ((msg as any).reason) {
+					setMatchEndedReason((msg as any).reason);
+				}
+				setPhase("finished");
+			}
+
+			if (msg.type === "reset_match") {
+				if (selectedMode === "creatorRoom") {
+					onRoomReset?.();
+				} else {
+					// Attempt to just reload
+					if (msg.targets && localRoom) {
+						setLocalRoom(prev => prev ? { ...prev, targets: msg.targets as StreetViewTarget[] } : null);
+					}
+					setPhase("loading");
+					resetMatchState();
+					void startSession(selectedMode);
+				}
+			}
+		});
+
+		channelRef.current = ch;
+
+		return () => {
+			unsubscribeRoom(ch);
+			supabase.removeChannel(presenceCh);
+			if (presenceMonitorRef.current) {
+				presenceMonitorRef.current.stop();
+				presenceMonitorRef.current = null;
+			}
+			channelRef.current = null;
+		};
+	}, [
+		localRoom,
+		isRoomMatch,
+		user?.uid,
+		selectedMode,
+		h2hOpponentId,
+		onRoomReset,
+		startSession,
+	]);
+
 	const loadRound = useCallback(
 		async (roundNumber: number) => {
 			const requestId = ++requestIdRef.current;
@@ -815,6 +807,7 @@ export default function Match({
 			setOpponentRoundDone(false);
 			setShowHint(false);
 			isSubmittingRef.current = false;
+			setIsSubmitting(false);
 
 			const nextTarget = await getTargetForRound(
 				roundNumber,
@@ -917,7 +910,7 @@ export default function Match({
 
 		nextRoundTimerRef.current = window.setTimeout(() => {
 			if (currentRoundIndex >= roundCount) {
-				if (isRoomMatch && channelRef.current && h2hRoom) {
+				if (isRoomMatch && channelRef.current && localRoom) {
 					const p1Final = totalScoreRef.current;
 					const p2Final = opponentScoreRef.current;
 
@@ -940,7 +933,7 @@ export default function Match({
 					if (user?.uid) finalScoresMap[user.uid] = p1Final;
 					if (h2hOpponentId) finalScoresMap[h2hOpponentId] = p2Final;
 
-					void updateRoom(h2hRoom.id, {
+					void updateRoom(localRoom.id, {
 						player1_score: h2hIsHost ? p1Final : p2Final,
 						player2_score: h2hIsHost ? p2Final : p1Final,
 						scores: finalScoresMap,
@@ -963,7 +956,7 @@ export default function Match({
 		goToNextRound,
 		h2hIsHost,
 		h2hOpponentId,
-		h2hRoom,
+		localRoom,
 		isRoomMatch,
 		preloadRound,
 		roundCount,
@@ -978,6 +971,7 @@ export default function Match({
 			if (!target || isSubmittingRef.current) return;
 
 			isSubmittingRef.current = true;
+			setIsSubmitting(true);
 
 			const usedGuess = guess;
 			const distanceKm = usedGuess ? haversineKm(usedGuess, target) : 20000;
@@ -1059,8 +1053,8 @@ export default function Match({
 			let isEveryoneDone = true;
 			const currentSubs = roundSubmissions[currentRoundIndex] || {};
 
-			if (selectedMode === "headToHead" && h2hRoom) {
-				const expected = h2hRoom.participants || [];
+			if (selectedMode === "headToHead" && localRoom) {
+				const expected = localRoom.participants || [];
 				if (expected.length === 0) isEveryoneDone = false;
 				for (const pid of expected) {
 					if (!currentSubs[pid]) {
@@ -1092,7 +1086,7 @@ export default function Match({
 		roundSubmissions,
 		currentRoundIndex,
 		activeParticipants,
-		h2hRoom,
+		localRoom,
 		selectedMode,
 		finalizeReveal,
 	]);
@@ -1153,13 +1147,13 @@ export default function Match({
 			return;
 		}
 
-		if (isRoomMatch && h2hRoom) {
+		if (isRoomMatch && localRoom) {
 			if (h2hIsHost && API_KEY) {
 				if (selectedMode === "creatorRoom") {
 					if (channelRef.current) {
 						broadcastToRoom(channelRef.current, { type: "reset_match" });
 					}
-					await updateRoom(h2hRoom.id, {
+					await updateRoom(localRoom.id, {
 						player1_score: 0,
 						player2_score: 0,
 						scores: {},
@@ -1185,7 +1179,7 @@ export default function Match({
 						targets: newTargets,
 					});
 				}
-				await updateRoom(h2hRoom.id, {
+				await updateRoom(localRoom.id, {
 					player1_score: 0,
 					player2_score: 0,
 					scores: {},
@@ -1196,7 +1190,7 @@ export default function Match({
 				});
 
 				// Update local object so startSession has latest
-				h2hRoom.targets = newTargets;
+				setLocalRoom(prev => prev ? { ...prev, targets: newTargets } : null);
 			} else if (!h2hIsHost) {
 				// Just wait for host to re-seed and trigger start in the background.
 				// Actually, the channel broadcast 'reset_match' handles letting the client know.
@@ -1289,19 +1283,19 @@ export default function Match({
 					)}
 
 					<MatchHud
-						selectedMode={selectedMode}
 						currentRoundIndex={currentRoundIndex}
 						roundCount={roundCount}
 						remainingSec={remainingSec}
-						isRoomMatch={isRoomMatch}
 						totalScore={totalScore}
 						opponentScore={opponentScore}
 						phase={phase}
+						selectedMode={selectedMode}
 						streetViewLoading={streetViewLoading}
 						heading={heading}
 						showHint={showHint}
-						onQuit={onBackToDashboard}
+						onQuit={handleQuitClick}
 						onReport={() => setIsReportModalOpen(true)}
+						isRoomMatch={isRoomMatch}
 					/>
 
 					{phase === "reveal" && currentResult && target && (
@@ -1316,6 +1310,7 @@ export default function Match({
 							userAvatar={user?.avatarUrl || user?.photoURL}
 							distanceMetric={user?.distanceMetric || "km"}
 							locationName={locationName}
+							onNext={handleNextRoundSkip}
 							opponentResults={Object.entries(
 								roundSubmissions[currentRoundIndex] || {},
 							)
@@ -1373,10 +1368,11 @@ export default function Match({
 					mapPreference={user?.mapPreference || "roadmap"}
 					userAvatar={user?.avatarUrl || user?.photoURL}
 					streetViewLoading={streetViewLoading}
+					isSubmitting={isSubmitting}
 				/>
 
-				{isRoomMatch && h2hRoom && (
-					<ChatPanel room={h2hRoom} isHost={h2hIsHost} phase={phase} />
+				{isRoomMatch && localRoom && (
+					<ChatPanel room={localRoom} isHost={h2hIsHost} phase={phase} />
 				)}
 			</div>
 
@@ -1393,7 +1389,7 @@ export default function Match({
 					onRestart={restartCurrentMode}
 					onBackToDashboard={onBackToDashboard}
 					isRoomMatch={isRoomMatch}
-					winnerId={h2hRoom?.winner_id}
+					winnerId={localRoom?.winner_id}
 					userId={user?.uid}
 					matchEndedReason={matchEndedReason}
 					roundSubmissions={roundSubmissions}
@@ -1405,6 +1401,34 @@ export default function Match({
 				onClose={() => setIsReportModalOpen(false)}
 				target={target}
 			/>
+
+			{showQuitConfirm && (
+				<div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+					<div className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900/95 p-6 shadow-2xl backdrop-blur-md">
+						<h3 className="text-xl font-bold text-white mb-2">Leave Match?</h3>
+						<p className="text-slate-300 mb-6 text-sm leading-relaxed">
+							Are you sure you want to quit? You will forfeit the match and lose any progress.
+						</p>
+						<div className="flex justify-end gap-3">
+							<button
+								onClick={() => setShowQuitConfirm(false)}
+								className="px-4 py-2 rounded-lg border border-white/10 text-slate-300 hover:bg-white/5 transition-all text-sm font-semibold cursor-pointer"
+							>
+								Cancel
+							</button>
+							<button
+								onClick={() => {
+									setShowQuitConfirm(false);
+									onBackToDashboard?.();
+								}}
+								className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-all text-sm font-semibold shadow-lg shadow-red-600/20 cursor-pointer"
+							>
+								Confirm Leave
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }

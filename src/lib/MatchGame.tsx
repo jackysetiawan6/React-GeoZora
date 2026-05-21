@@ -129,34 +129,32 @@ export async function loadGameModes(): Promise<void> {
     }
 
     if (data && data.length > 0) {
-      const tempConfigs = { ...MODE_CONFIGS };
+      const nextConfigs = {} as Record<GameModeId, ModeConfig>;
       
-      for (const key of Object.keys(MODE_CONFIGS)) {
-        delete MODE_CONFIGS[key as GameModeId];
-      }
-
       for (const row of data) {
         const id = row.id as GameModeId;
-        if (tempConfigs[id]) {
-          MODE_CONFIGS[id] = {
-            ...tempConfigs[id],
+        if (MODE_CONFIGS[id]) {
+          nextConfigs[id] = {
+            ...MODE_CONFIGS[id],
             label: row.label,
             rounds: row.rounds,
             seconds: row.seconds,
             description: row.description,
             multiplayer: row.multiplayer,
             enabled: row.enabled,
-            bgImg: row.bg_img || tempConfigs[id].bgImg,
+            bgImg: row.bg_img || MODE_CONFIGS[id].bgImg,
           };
         }
       }
       
-      for (const key of Object.keys(tempConfigs)) {
+      for (const key of Object.keys(MODE_CONFIGS)) {
         const id = key as GameModeId;
-        if (!MODE_CONFIGS[id]) {
-          MODE_CONFIGS[id] = tempConfigs[id];
+        if (!nextConfigs[id]) {
+          nextConfigs[id] = MODE_CONFIGS[id];
         }
       }
+
+      Object.assign(MODE_CONFIGS, nextConfigs);
     }
     _modesLoaded = true;
   })();
@@ -187,7 +185,9 @@ function randomFloat(min: number, max: number) {
 }
 
 function pickRandom<T>(items: T[]): T {
-  if (!items || items.length === 0) return undefined as unknown as T;
+  if (!items || items.length === 0) {
+    throw new Error("pickRandom: Array must not be empty or null");
+  }
   return items[randomInt(0, items.length - 1)];
 }
 

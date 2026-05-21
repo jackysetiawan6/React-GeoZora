@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { cn, getRankTitle } from "../lib/utils";
+import { useFocusTrap } from "../lib/useFocusTrap";
+import type { AppTab } from "../lib/types";
 import { getLevel, getExpInCurrentLevel, getExpRequiredForLevel } from "../lib/PlayerStats";
 import { toast } from "sonner";
 import { useAuth } from "../lib/AuthContext";
@@ -36,15 +38,6 @@ interface Notification {
 	message: string;
 	read: boolean;
 }
-
-type AppTab =
-	| "Home"
-	| "Leaderboards"
-	| "Setup"
-	| "Match"
-	| "Profile"
-	| "Admin"
-	| "History";
 
 interface HeaderProps {
 	activeTab: AppTab;
@@ -104,6 +97,10 @@ export default function Header({
 	const userMenuRef = useRef<HTMLDivElement>(null);
 	const notifRef = useRef<HTMLDivElement>(null);
 	const mobileNavRef = useRef<HTMLDivElement>(null);
+
+	useFocusTrap(mobileNavRef, openDropdown === "mobileNav");
+	useFocusTrap(userMenuRef, openDropdown === "user");
+	useFocusTrap(notifRef, openDropdown === "notifications");
 
 	const [notifications, setNotifications] = useState<Notification[]>([]);
 	const [userStats, setUserStats] = useState({ exp: 0, elo: 1300 });
@@ -328,13 +325,16 @@ export default function Header({
 	};
 
 	const handleJoinRoom = async (code: string) => {
-		const { data: rooms } = await supabase
-			.from("match_rooms")
-			.select("*")
-			.eq("status", "waiting");
+		const { data, error } = await supabase
+			.rpc("find_room_by_code", { p_code: code })
+			.maybeSingle();
 
-		// In this simplified version, we search for a matching substring of the ID
-		const room = (rooms || []).find(r => r.id.toUpperCase().startsWith(code));
+		if (error) {
+			toast.error("Error finding room: " + error.message);
+			return;
+		}
+
+		const room = data as any;
 
 		if (room && onJoinRoom) {
 			if (user) {
