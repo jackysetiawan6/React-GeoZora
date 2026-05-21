@@ -122,6 +122,9 @@ export default function Match({
 	const [activeParticipants, setActiveParticipants] = useState<Set<string>>(
 		new Set(),
 	);
+	const isH2H = selectedMode === "headToHead" && localRoom !== null;
+	const isCreator = selectedMode === "creatorRoom" && localRoom !== null;
+	const isRoomMatch = isH2H || isCreator;
 
 	type SubmissionsMap = Record<
 		number,
@@ -136,7 +139,8 @@ export default function Match({
 		if (!isRoomMatch || Object.keys(allScores).length === 0) return [];
 
 		const currentRoundScores = roundSubmissions[currentRoundIndex] || {};
-		const entries = Object.entries(allScores).map(([uid, totalScore]) => {
+		const entries = (Object.entries(allScores) as Array<[string, number]>).map(
+			([uid, totalScore]) => {
 			const roundScore = currentRoundScores[uid]?.score ?? 0;
 			return {
 				uid,
@@ -147,7 +151,8 @@ export default function Match({
 				totalScore,
 				roundScore,
 			};
-		});
+			},
+		);
 
 		const currentSorted = [...entries].sort(
 			(a, b) => b.totalScore - a.totalScore,
@@ -209,10 +214,6 @@ export default function Match({
 		}
 		void goToNextRound();
 	};
-
-	const isH2H = selectedMode === "headToHead" && localRoom !== null;
-	const isCreator = selectedMode === "creatorRoom" && localRoom !== null;
-	const isRoomMatch = isH2H || isCreator;
 
 	const selectedMapsKey = useMemo(() => selectedMaps.join("|"), [selectedMaps]);
 
