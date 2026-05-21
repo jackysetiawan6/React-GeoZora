@@ -206,6 +206,7 @@ export default function Header({
 							read: n.is_read,
 						})),
 					);
+				}
 			};
 
 			fetchStats();
