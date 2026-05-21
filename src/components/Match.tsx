@@ -146,6 +146,7 @@ export default function Match({
 	const channelRef = useRef<ReturnType<typeof subscribeToRoom> | null>(null);
 	const presenceMonitorRef = useRef<RoomPresenceMonitor | null>(null);
 	const [showQuitConfirm, setShowQuitConfirm] = useState(false);
+	const matchStartTimeRef = useRef<number | null>(null);
 
 	const handleQuitClick = () => {
 		if (phase === "finished") {
@@ -359,6 +360,10 @@ export default function Match({
 
 		const saveStats = async () => {
 			if (!user) return;
+			const realDuration = matchStartTimeRef.current ?
+				Math.round((Date.now() - matchStartTimeRef.current) / 1000)
+			:	null;
+
 			if (isH2H && localRoom && h2hOpponentId) {
 				const result: "win" | "loss" | "draw" =
 					totalScore > opponentScore ? "win"
@@ -412,6 +417,7 @@ export default function Match({
 						no_moving: localRoom.no_moving,
 						no_panning: localRoom.no_panning,
 						no_zooming: localRoom.no_zooming,
+						real_duration: realDuration,
 					},
 					{
 						player1: isPlayer1 ? playerExpGain : opponentExpGain,
@@ -436,12 +442,13 @@ export default function Match({
 					0,
 					"classic",
 					stableSelectedMaps.map(m => m),
-					customRounds,
-					getResolvedRoundSeconds("classic"),
+					roundCount,
+					roundSeconds,
 					{
 						no_moving: false,
 						no_panning: false,
 						no_zooming: false,
+						real_duration: realDuration,
 					},
 					{
 						player1: expGain,
@@ -467,6 +474,8 @@ export default function Match({
 		stableSelectedMaps,
 		customRounds,
 		getResolvedRoundSeconds,
+		roundCount,
+		roundSeconds,
 	]);
 
 
@@ -555,6 +564,7 @@ export default function Match({
 				if (requestIdRef.current !== requestId) return;
 
 				setPhase("playing");
+				matchStartTimeRef.current = Date.now();
 
 				void ensureTargetsAhead(1, mode, resolvedRounds, 3);
 			} catch {

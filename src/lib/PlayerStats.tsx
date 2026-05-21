@@ -409,6 +409,7 @@ export async function saveMatchHistory(
 		no_moving: boolean;
 		no_panning: boolean;
 		no_zooming: boolean;
+		real_duration?: number | null;
 	},
 	expGained: { player1: number; player2?: number },
 	eloChange?: { player1: number; player2: number },
