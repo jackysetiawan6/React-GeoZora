@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-app-bg: #0A101D;
+  --color-app-panel: #141C2F;
+  --color-app-text: #F8FAFC;
+  --color-app-text-muted: #94A3B8;
+  --color-app-border: rgba(255, 255, 255, 0.1);
+  --color-app-border-light: rgba(255, 255, 255, 0.05);
+  --color-app-hover: rgba(255, 255, 255, 0.05);
+  --color-app-blue: #3B82F6;
+  --color-app-purple: #8B5CF6;
+  --color-app-overlay: rgba(10, 16, 29, 0.5);
+}
+
+body {
+  background-color: var(--color-app-bg);
+  color: var(--color-app-text);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-app-overlay);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-app-border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(150, 150, 150, 0.2);
+}
+
+/* Hide scrollbar for elements with no-scrollbar class */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+/* Light Theme Overrides */
+.light-theme {
+  --color-app-bg: #F8FAFC;
+  --color-app-panel: #FFFFFF;
+  --color-app-text: #0F172A;
+  --color-app-text-muted: #64748B;
+  --color-app-border: rgba(0, 0, 0, 0.1);
+  --color-app-border-light: rgba(0, 0, 0, 0.05);
+  --color-app-hover: rgba(0, 0, 0, 0.05);
+  --color-app-overlay: rgba(255, 255, 255, 0.5);
+}
+
+/* Accessibility Focus Visible */
+*:focus-visible {
+  outline: 2px solid var(--color-app-blue);
+  outline-offset: 2px;
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-delay: -1ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    background-attachment: initial !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+  }
+}
