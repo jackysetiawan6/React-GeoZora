@@ -3,7 +3,7 @@
 [![GitHub Repository](https://img.shields.io/badge/GitHub-React--GeoZora-blue?logo=github)](https://github.com/jackysetiawan6/React-GeoZora)
 [![Website](https://img.shields.io/badge/Website-geozora.vercel.app-green)](https://geozora.vercel.app)
 
-![GeoZora Banner](./assets/geozora_banner.png)
+![GeoZora Banner](./public/geozora_banner.png)
 
 **GeoZora** is a premium, real-time multiplayer geography guessing game inspired by GeoGuessr. Players are placed in random Google Street View locations around the world and must pinpoint their location on a map. Built using **React**, **Vite**, **TypeScript**, and **Supabase**, it features a sleek dark mode design with real-time multiplayer lobbies, ELO ratings, level progression, and comprehensive anti-cheat enforcement.
 
