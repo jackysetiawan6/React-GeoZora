@@ -333,7 +333,7 @@ export default function RoomLobby({
 	const [editNoPan, setEditNoPan] = useState(room.no_panning);
 	const [editNoZoom, setEditNoZoom] = useState(room.no_zooming);
 	const [editEnableTimeMultiplier, setEditEnableTimeMultiplier] = useState(
-		room.enable_time_multiplier !== false,
+		room.enable_time_multiplier === true,
 	);
 
 	useEffect(() => {
@@ -344,7 +344,7 @@ export default function RoomLobby({
 			setEditNoMove(roomRef.current.no_moving);
 			setEditNoPan(roomRef.current.no_panning);
 			setEditNoZoom(roomRef.current.no_zooming);
-			setEditEnableTimeMultiplier(roomRef.current.enable_time_multiplier !== false);
+			setEditEnableTimeMultiplier(roomRef.current.enable_time_multiplier === true);
 		}
 	}, [isEditingSettings]);
 
@@ -836,13 +836,13 @@ export default function RoomLobby({
 									<div
 										className={cn(
 											"flex items-center justify-between text-xs",
-											room.enable_time_multiplier !== false ? "text-green-500" : "text-red-400",
+											room.enable_time_multiplier === true ? "text-green-500" : "text-red-400",
 										)}>
 										<span className="font-medium text-[var(--color-app-text)] opacity-60">
 											Time Multiplier
 										</span>
 										<span className="font-bold">
-											{room.enable_time_multiplier !== false ? "ON" : "OFF"}
+											{room.enable_time_multiplier === true ? "ON" : "OFF"}
 										</span>
 									</div>
 								</div>

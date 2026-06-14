@@ -29,10 +29,13 @@ export default function LoginModal({ onClose }: LoginModalProps) {
   const handleGoogle = async () => {
     try {
       setLoading(true);
+      const redirectTo = window.location.origin.endsWith('/') 
+        ? window.location.origin 
+        : `${window.location.origin}/`;
       const { error: googleError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin
+          redirectTo
         }
       });
       if (googleError) throw googleError;

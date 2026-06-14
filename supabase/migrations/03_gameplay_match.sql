@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS public.match_rooms (
   no_moving boolean DEFAULT false,
   no_panning boolean DEFAULT false,
   no_zooming boolean DEFAULT false,
-  enable_time_multiplier boolean DEFAULT true,
+  enable_time_multiplier boolean DEFAULT false,
   mode text DEFAULT 'classic',
   selected_maps jsonb DEFAULT '["world"]'::jsonb,
   player1_score integer DEFAULT 0,
@@ -625,25 +625,37 @@ BEGIN
       END IF;
 
       -- Verify EXP calculations (EXP_H2H_WIN=100, EXP_H2H_DRAW=60, EXP_H2H_LOSS=30)
-      -- Find user rank/result
+      -- Find user rank/result by iterating over actual participants list
       DECLARE
-        v_top_score integer := 0;
-        v_runner_up integer := 0;
-        r record;
+        v_max_score integer := -1;
+        v_max_count integer := 0;
+        r_p_id text;
+        v_p_score integer;
       BEGIN
-        FOR r IN SELECT key, value::integer FROM jsonb_each(v_scores) LOOP
-          IF r.value > v_top_score THEN
-            v_runner_up := v_top_score;
-            v_top_score := r.value;
-          ELSIF r.value > v_runner_up THEN
-            v_runner_up := r.value;
-          END IF;
-        END LOOP;
+        IF v_participants IS NOT NULL AND jsonb_array_length(v_participants) > 0 THEN
+          FOR v_idx IN 0 .. (jsonb_array_length(v_participants) - 1) LOOP
+            r_p_id := (v_participants->v_idx)::text;
+            r_p_id := replace(r_p_id, '"', '');
+            
+            -- Get score, default to 0 if not present in scores json
+            v_p_score := COALESCE((v_scores->>r_p_id)::integer, 0);
+            
+            IF v_p_score > v_max_score THEN
+              v_max_score := v_p_score;
+              v_max_count := 1;
+            ELSIF v_p_score = v_max_score THEN
+              v_max_count := v_max_count + 1;
+            END IF;
+          END LOOP;
+        ELSE
+          v_max_score := 0;
+          v_max_count := 1;
+        END IF;
 
         v_user_score := COALESCE((v_scores->>p_user_id)::integer, 0);
 
-        IF v_user_score = v_top_score THEN
-          IF v_user_score = v_runner_up THEN
+        IF v_user_score = v_max_score THEN
+          IF v_max_count > 1 THEN
             v_actual_result := 'draw';
           ELSE
             v_actual_result := 'win';
@@ -733,39 +745,67 @@ BEGIN
       NEW.winner_id := NULL;
       NEW.round_submissions := '{}'::jsonb;
     ELSE
-      -- Discard manual client modifications to scores, player scores, or winner_id
+      -- Discard manual client modifications to scores, player scores
       NEW.scores := OLD.scores;
       NEW.player1_score := OLD.player1_score;
       NEW.player2_score := OLD.player2_score;
-      NEW.winner_id := OLD.winner_id;
       
-      -- Client cannot directly set status to completed (must go through submit_match_guess RPC)
+      -- Only allow client to modify winner_id when completing the match
+      IF NOT (NEW.status = 'completed' AND OLD.status != 'completed') THEN
+        NEW.winner_id := OLD.winner_id;
+      END IF;
+      
+      -- Client cannot directly set status to completed (must go through submit_match_guess RPC or have finished all rounds)
       IF NEW.status IS DISTINCT FROM OLD.status AND NEW.status = 'completed' THEN
-        NEW.status := OLD.status;
+        IF OLD.mode = 'creatorRoom' OR OLD.mode = 'classic' OR OLD.current_round >= OLD.total_rounds THEN
+          -- Allow setting status to completed
+          NULL;
+        ELSE
+          NEW.status := OLD.status;
+        END IF;
       END IF;
     END IF;
 
-    -- 2. Enforce Round Advancement validation:
-    -- Client is only allowed to advance current_round if everyone has submitted their guess for the active round.
+    -- 2. Enforce Round Advancement:
+    -- Instead of throwing exceptions (which blocks games when players disconnect or are AFK),
+    -- we auto-populate a default null guess for any player who hasn't submitted their guess yet.
     IF NEW.current_round IS DISTINCT FROM OLD.current_round AND NEW.current_round = OLD.current_round + 1 THEN
       IF OLD.mode = 'headToHead' THEN
-        IF (OLD.round_submissions->(OLD.current_round::text)->OLD.player1_id) IS NULL OR
-           (OLD.round_submissions->(OLD.current_round::text)->(COALESCE(OLD.player2_id, ''))) IS NULL THEN
-          RAISE EXCEPTION 'Cannot advance round. Not all players have submitted guesses for the current round.';
+        IF (NEW.round_submissions->(OLD.current_round::text)->OLD.player1_id) IS NULL THEN
+          NEW.round_submissions := jsonb_set(
+            COALESCE(NEW.round_submissions, '{}'::jsonb),
+            ARRAY[OLD.current_round::text, OLD.player1_id],
+            '{"score": 0, "guess": null}'::jsonb
+          );
+        END IF;
+        IF OLD.player2_id IS NOT NULL AND (NEW.round_submissions->(OLD.current_round::text)->OLD.player2_id) IS NULL THEN
+          NEW.round_submissions := jsonb_set(
+            COALESCE(NEW.round_submissions, '{}'::jsonb),
+            ARRAY[OLD.current_round::text, OLD.player2_id],
+            '{"score": 0, "guess": null}'::jsonb
+          );
         END IF;
       ELSIF OLD.mode = 'creatorRoom' THEN
         IF OLD.participants IS NOT NULL AND jsonb_array_length(OLD.participants) > 0 THEN
           FOR v_idx IN 0 .. (jsonb_array_length(OLD.participants) - 1) LOOP
             v_p_id := (OLD.participants->v_idx)::text;
             v_p_id := replace(v_p_id, '"', '');
-            IF (OLD.round_submissions->(OLD.current_round::text)->v_p_id) IS NULL THEN
-              RAISE EXCEPTION 'Cannot advance round. Player % has not submitted their guess.', v_p_id;
+            IF (NEW.round_submissions->(OLD.current_round::text)->v_p_id) IS NULL THEN
+              NEW.round_submissions := jsonb_set(
+                COALESCE(NEW.round_submissions, '{}'::jsonb),
+                ARRAY[OLD.current_round::text, v_p_id],
+                '{"score": 0, "guess": null}'::jsonb
+              );
             END IF;
           END LOOP;
         END IF;
       ELSIF OLD.mode = 'classic' THEN
-        IF (OLD.round_submissions->(OLD.current_round::text)->OLD.player1_id) IS NULL THEN
-          RAISE EXCEPTION 'Cannot advance round. You have not submitted your guess.';
+        IF (NEW.round_submissions->(OLD.current_round::text)->OLD.player1_id) IS NULL THEN
+          NEW.round_submissions := jsonb_set(
+            COALESCE(NEW.round_submissions, '{}'::jsonb),
+            ARRAY[OLD.current_round::text, OLD.player1_id],
+            '{"score": 0, "guess": null}'::jsonb
+          );
         END IF;
       END IF;
     END IF;

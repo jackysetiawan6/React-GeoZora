@@ -1,6 +1,6 @@
 {
   "name": "GeoZora",
-  "description": "A geography exploration and guessing game dashboard.",
+  "description": "A geography exploration and guessing game.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

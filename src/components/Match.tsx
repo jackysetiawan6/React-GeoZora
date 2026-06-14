@@ -94,6 +94,22 @@ export default function Match({
 
 	const [phase, setPhase] = useState<GamePhase>("loading");
 	const [currentRoundIndex, setCurrentRoundIndex] = useState(0);
+	const [countdownVal, setCountdownVal] = useState<number | null>(null);
+
+	useEffect(() => {
+		if (countdownVal === null) return;
+		if (countdownVal > 0) {
+			audioManager.playSfx("tick");
+			const timer = window.setTimeout(() => {
+				setCountdownVal(countdownVal - 1);
+			}, 1000);
+			return () => window.clearTimeout(timer);
+		} else {
+			setCountdownVal(null);
+			setPhase("playing");
+			audioManager.playSfx("roundStart");
+		}
+	}, [countdownVal]);
 
 	const [reconnectTrigger, setReconnectTrigger] = useState(0);
 
@@ -1511,8 +1527,8 @@ export default function Match({
 			setTarget(nextTarget);
 			setCurrentRoundIndex(roundNumber);
 			setRemainingSec(resolvedSeconds);
+			setCountdownVal(3);
 			setPhase("playing");
-			audioManager.playSfx("roundStart");
 
 			// Persist current round to DB for room matches so server/other clients can stay in sync
 			if (isRoomMatch && localRoom) {
@@ -1716,7 +1732,7 @@ export default function Match({
 			const clientDistanceKm = usedGuess ? haversineKm(usedGuess, target) : 20000;
 			const clientScore =
 				forcedTimeout || !usedGuess ? 0 : (
-					calculateScore(clientDistanceKm, remainingSec, roundSeconds, roomMode !== "classic" && localRoom?.enable_time_multiplier !== false)
+					calculateScore(clientDistanceKm, remainingSec, roundSeconds, roomMode !== "classic" && localRoom?.enable_time_multiplier === true)
 				);
 
 			let verifiedScore = clientScore;
@@ -2021,7 +2037,7 @@ export default function Match({
 	}, [clearTimers, selectedMode, startSession, user?.uid, isRoomMatch, localRoom, resetTelemetry, getResolvedRoundSeconds, stableSelectedMaps, finalizeReveal]);
 
 	useEffect(() => {
-		if (phase !== "playing" || streetViewLoading) return;
+		if (phase !== "playing" || streetViewLoading || countdownVal !== null) return;
 
 		const timer = window.setInterval(() => {
 			setRemainingSec(prev => Math.max(0, prev - 1));
@@ -2228,6 +2244,17 @@ export default function Match({
 							}
 							onExit={handleQuitClick}
 						/>
+					)}
+
+					{countdownVal !== null && (
+						<div className="absolute inset-0 z-[200] flex flex-col items-center justify-center bg-black/45 backdrop-blur-[2px] pointer-events-auto select-none">
+							<div 
+								key={countdownVal} 
+								className="text-white text-8xl md:text-9xl font-black font-mono countdown-pop select-none drop-shadow-[0_0_35px_rgba(59,130,246,0.6)]"
+							>
+								{countdownVal}
+							</div>
+						</div>
 					)}
 
 					<MatchHud

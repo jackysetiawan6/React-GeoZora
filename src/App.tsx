@@ -20,6 +20,7 @@ import { testSupabaseConnection, logSystemError } from "./lib/supabase";
 import { loadMapRegions } from "./lib/MapRegions";
 import { useAuth } from "./lib/AuthContext";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { initializeHealthMonitor } from "./lib/ConnectionHealthMonitor";
 import { loadGameModes, type GameModeId, MODE_CONFIGS } from "./lib/MatchGame";
 import type { MapRegion } from "./lib/MapRegions";
@@ -48,6 +49,59 @@ import type { AppTab } from "./lib/types";
 export default function App() {
 	const { user } = useAuth();
 	const [activeTab, setActiveTab] = useState<AppTab>("Home");
+
+	const [appealMessage, setAppealMessage] = useState("");
+	const [appealStatus, setAppealStatus] = useState<"idle" | "loading" | "submitted" | "error">("idle");
+
+	useEffect(() => {
+		if (user?.isBanned) {
+			setAppealStatus("loading");
+			supabase
+				.from("feedbacks")
+				.select("id")
+				.eq("user_id", user.uid)
+				.eq("type", "appeal")
+				.eq("status", "open")
+				.maybeSingle()
+				.then(({ data, error }) => {
+					if (error) {
+						console.error("Error checking appeals:", error);
+						setAppealStatus("idle");
+					} else if (data) {
+						setAppealStatus("submitted");
+					} else {
+						setAppealStatus("idle");
+					}
+				});
+		}
+	}, [user?.uid, user?.isBanned]);
+
+	const handleSendAppeal = async (e: React.FormEvent) => {
+		e.preventDefault();
+		if (!appealMessage.trim() || !user) return;
+
+		setAppealStatus("loading");
+		try {
+			const { error } = await supabase.from("feedbacks").insert({
+				user_id: user.uid,
+				player_name: user.displayName || "Banned Player",
+				type: "appeal",
+				message: appealMessage.trim(),
+				details: {
+					ban_reason: user.banReason,
+				},
+			});
+
+			if (error) throw error;
+			setAppealStatus("submitted");
+			toast.success("Appeal submitted successfully. Our team will review it.");
+		} catch (err) {
+			console.error("Error submitting appeal:", err);
+			setAppealStatus("error");
+			toast.error("Failed to submit appeal. Please try again.");
+		}
+	};
+
 	const [selectedMode, setSelectedMode] = useState<GameModeId>("classic");
 	const hasRestoredMatchSessionRef = useRef(false);
 
@@ -63,7 +117,7 @@ export default function App() {
 	const [noMoving, setNoMoving] = useState(false);
 	const [noPanning, setNoPanning] = useState(false);
 	const [noZooming, setNoZooming] = useState(false);
-	const [enableTimeMultiplier, setEnableTimeMultiplier] = useState(true);
+	const [enableTimeMultiplier, setEnableTimeMultiplier] = useState(false);
 
 	const [creatorRoom, setCreatorRoom] = useState<MatchRoom | null>(null);
 
@@ -736,6 +790,80 @@ export default function App() {
 						className="px-6 py-2.5 bg-red-600 hover:bg-red-700 active:scale-98 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-red-600/20 cursor-pointer"
 					>
 						Try Again
+					</button>
+				</div>
+			</div>
+		);
+	}
+
+	// ── Appeal Render Interception ──
+	if (user?.isBanned && ["Setup", "Matchmaking", "Match", "RoomLobby"].includes(activeTab)) {
+		return (
+			<div className="h-screen w-screen bg-[var(--color-app-bg)] text-[var(--color-app-text)] flex items-center justify-center font-sans relative overflow-hidden">
+				<div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-red-500/20 blur-[120px] rounded-full pointer-events-none" />
+				<div className="absolute top-[20%] right-[-10%] w-[40%] h-[40%] bg-red-500/10 blur-[120px] rounded-full pointer-events-none" />
+
+				<div className="bg-[var(--color-app-panel)] border border-red-500/20 max-w-md w-full rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-6 z-10 animate-in fade-in zoom-in-95 duration-350 mx-4">
+					<div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mb-2 shadow-[0_0_20px_rgba(239,68,68,0.2)]">
+						<span className="text-3xl">🚫</span>
+					</div>
+					<h2 className="text-2xl font-bold tracking-tight text-[var(--color-app-text)] text-center">
+						Account Suspended
+					</h2>
+					<p className="text-[var(--color-app-text-muted)] text-sm text-center leading-relaxed">
+						Your account has been suspended for violating our community guidelines. To restore access, you must submit an appeal.
+					</p>
+
+					<div className="w-full bg-red-500/5 border border-red-500/10 rounded-xl p-4 text-xs font-mono text-red-400">
+						<span className="font-bold uppercase tracking-wider block mb-1">Reason:</span>
+						<span>{user.banReason || "No reason provided."}</span>
+					</div>
+
+					{appealStatus === "loading" && (
+						<div className="flex flex-col items-center gap-2 py-4">
+							<Loader2 className="w-8 h-8 text-red-500 animate-spin" />
+							<p className="text-xs text-[var(--color-app-text-muted)]">Checking appeal status...</p>
+						</div>
+					)}
+
+					{appealStatus === "submitted" && (
+						<div className="w-full bg-green-500/5 border border-green-500/20 rounded-xl p-4 text-center text-sm text-green-400 flex flex-col gap-2">
+							<span className="font-bold">Appeal Submitted</span>
+							<span className="text-xs text-[var(--color-app-text-muted)]">
+								Our team is reviewing your case. We will notify you once a decision has been made.
+							</span>
+						</div>
+					)}
+
+					{(appealStatus === "idle" || appealStatus === "error") && (
+						<form onSubmit={handleSendAppeal} className="w-full flex flex-col gap-4">
+							<div className="flex flex-col gap-1.5">
+								<label htmlFor="appeal-text" className="text-xs font-semibold text-[var(--color-app-text-muted)] uppercase tracking-wider">
+									Appeal Description
+								</label>
+								<textarea
+									id="appeal-text"
+									required
+									placeholder="Describe why your account should be unbanned..."
+									value={appealMessage}
+									onChange={e => setAppealMessage(e.target.value)}
+									className="w-full min-h-[120px] bg-[var(--color-app-bg)] border border-[var(--color-app-border)] focus:border-red-500 rounded-xl p-3 text-sm resize-none focus:outline-none transition-colors"
+								/>
+							</div>
+							<button
+								type="submit"
+								className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-red-600/20 cursor-pointer active:scale-98"
+							>
+								Submit Appeal
+							</button>
+						</form>
+					)}
+
+					<button
+						onClick={() => setActiveTab("Home")}
+						className="text-xs text-[var(--color-app-text-muted)] hover:text-[var(--color-app-text)] transition-colors underline cursor-pointer"
+					>
+						Back to Homepage
 					</button>
 				</div>
 			</div>

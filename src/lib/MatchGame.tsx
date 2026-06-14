@@ -399,7 +399,7 @@ export function calculateScore(
   distanceKm: number,
   timeLeft: number,
   roundSeconds: number,
-  enableTimeMultiplier: boolean = true
+  enableTimeMultiplier: boolean = false
 ) {
   const distanceScore = 5000 * Math.exp(-distanceKm / 1500);
   const timeBonus = enableTimeMultiplier ? 0.6 + 0.4 * (timeLeft / Math.max(1, roundSeconds)) : 1.0;

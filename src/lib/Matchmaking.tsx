@@ -127,7 +127,7 @@ export async function fetchRoom(roomId: string): Promise<MatchRoom | null> {
 			typeof room.scores === "string" ?
 				JSON.parse(room.scores)
 			: 	room.scores || {},
-		enable_time_multiplier: room.enable_time_multiplier !== false,
+		enable_time_multiplier: room.enable_time_multiplier === true,
 	} as MatchRoom;
 }
 
@@ -144,7 +144,7 @@ export async function createRoom(
 	selectedMaps: MapRegion[] = ["world"],
 	status: "active" | "waiting" | "completed" = "active",
 	mode: string = "headToHead",
-	enableTimeMultiplier: boolean = true,
+	enableTimeMultiplier: boolean = false,
 ): Promise<MatchRoom | null> {
 	const { data, error } = await supabase
 		.from("match_rooms")
@@ -194,7 +194,7 @@ export async function createRoom(
 			typeof data.scores === "string" ?
 				JSON.parse(data.scores)
 			: 	data.scores || {},
-		enable_time_multiplier: data.enable_time_multiplier !== false,
+		enable_time_multiplier: data.enable_time_multiplier === true,
 	} as MatchRoom;
 }
 

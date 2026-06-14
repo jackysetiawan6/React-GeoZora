@@ -81,13 +81,14 @@ CREATE POLICY "Users can update own messages"
 DROP POLICY IF EXISTS "Users can create feedbacks" ON public.feedbacks;
 CREATE POLICY "Users can create feedbacks"
   ON public.feedbacks FOR INSERT TO authenticated WITH CHECK (
-    (user_id IS NULL OR auth.uid()::text = user_id) AND NOT public.is_current_user_banned()
+    (user_id IS NULL OR auth.uid()::text = user_id) AND 
+    (NOT public.is_current_user_banned() OR type = 'appeal')
   );
 
 DROP POLICY IF EXISTS "Users can read own feedbacks and admins can read all" ON public.feedbacks;
 CREATE POLICY "Users can read own feedbacks and admins can read all"
   ON public.feedbacks FOR SELECT TO authenticated USING (
-    (auth.uid()::text = user_id AND NOT public.is_current_user_banned()) OR 
+    (auth.uid()::text = user_id AND (NOT public.is_current_user_banned() OR type = 'appeal')) OR 
     public.is_current_user_admin()
   );
 

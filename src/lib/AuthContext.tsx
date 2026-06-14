@@ -118,9 +118,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 			if (data) {
 				if (data.is_banned) {
-					toast.error(`Access Denied: This account has been banned.\nReason: ${data.ban_reason || "No reason provided."}`);
-					await supabase.auth.signOut();
-					setUser(null);
+					setUser(prev =>
+						prev ?
+							{
+								...prev,
+								isBanned: true,
+								banReason: data.is_banned ? (data.ban_reason || "No reason provided.") : null,
+							}
+						:	null,
+					);
 					return;
 				}
 				setUser(prev =>
@@ -303,19 +309,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 					if (profile) {
 						if (profile.is_banned) {
-							toast.error(`Access Denied: This account has been banned.\nReason: ${profile.ban_reason || "No reason provided."}`);
-							await supabase.auth.signOut();
-							setUser(null);
-							setLoading(false);
-							return;
+							userObj.isBanned = true;
+							userObj.banReason = profile.ban_reason || "No reason provided.";
+						} else {
+							userObj.displayName = profile.display_name || syncedDisplayName;
+							userObj.isAdmin = profile.is_admin || false;
+							userObj.isBanned = false;
+							userObj.banReason = null;
+							userObj.distanceMetric = profile.distance_metric || userObj.distanceMetric;
+							userObj.mapPreference = profile.map_preference || userObj.mapPreference;
+							userObj.avatarUrl = profile.avatar_url || null;
 						}
-						userObj.displayName = profile.display_name || syncedDisplayName;
-						userObj.isAdmin = profile.is_admin || false;
-						userObj.isBanned = false;
-						userObj.banReason = null;
-						userObj.distanceMetric = profile.distance_metric || userObj.distanceMetric;
-						userObj.mapPreference = profile.map_preference || userObj.mapPreference;
-						userObj.avatarUrl = profile.avatar_url || null;
 					}
 
 					setUser({ ...userObj });
