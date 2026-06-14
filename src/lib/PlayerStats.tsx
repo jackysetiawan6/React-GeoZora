@@ -171,7 +171,7 @@ export function calculateEloChange(
 }
 
 export function calculateExpGain(
-	mode: "classic" | "headToHead" | "creatorRoom",
+	mode: "classic" | "headToHead" | "creatorRoom" | "vsAI",
 	totalScore: number,
 	h2hResult?: "win" | "loss" | "draw",
 ): number {
@@ -262,6 +262,78 @@ export async function updateStatsAfterClassic(
 	if (error || !data) {
 		console.error("updateStatsAfterClassic error:", error);
 		void logSystemError("updateStatsAfterClassic RPC failure", { error: error?.message || "No data returned", code: error?.code });
+		return null;
+	}
+
+	const updated: PlayerStats = {
+		user_id: data.id,
+		exp: data.exp,
+		elo: data.elo,
+		last_avg_score: data.last_avg_score ?? 0,
+		games_played: data.games_played,
+	};
+
+	const notifications: NotificationRow[] = [
+		{
+			user_id: userId,
+			title: "EXP Gained",
+			message: `You gained ${expGain} EXP.`,
+		},
+	];
+
+	if (getLevel(updated.exp) > getLevel(cur.exp)) {
+		notifications.push({
+			user_id: userId,
+			title: "Level Up!",
+			message: `Congratulations! You reached level ${getLevel(updated.exp)}.`,
+		});
+	}
+
+	for (const achievement of getAchievementChecks(cur, updated)) {
+		if (!achievement.wasUnlocked && achievement.isUnlocked) {
+			notifications.push({
+				user_id: userId,
+				title: "Achievement unlocked",
+				message: `Achievement unlocked: ${achievement.name}.`,
+			});
+		}
+	}
+
+	await insertNotifications(notifications);
+
+	return updated;
+}
+
+export async function updateStatsAfterVsAi(
+	userId: string,
+	totalScore: number,
+	rounds: number,
+	result: "win" | "loss" | "draw",
+	roomId: string | null = null,
+): Promise<PlayerStats | null> {
+	const cur = await fetchPlayerStats(userId);
+	if (!cur) {
+		console.error(
+			"updateStatsAfterVsAi: fetchPlayerStats returned null for",
+			userId,
+		);
+		return null;
+	}
+
+	const expGain = calculateExpGain("vsAI", totalScore, result);
+	const avgScore = calculateAvgScore(totalScore, rounds);
+
+	const { data, error } = await supabase.rpc("increment_player_stats", {
+		p_user_id: userId,
+		p_exp_gain: expGain,
+		p_elo_change: 0,
+		p_avg_score: avgScore,
+		p_room_id: roomId,
+	});
+
+	if (error || !data) {
+		console.error("updateStatsAfterVsAi error:", error);
+		void logSystemError("updateStatsAfterVsAi RPC failure", { error: error?.message || "No data returned", code: error?.code });
 		return null;
 	}
 
@@ -465,7 +537,7 @@ export async function saveMatchHistory(
 	player2Name: string | null,
 	player1Score: number,
 	player2Score: number,
-	mode: "classic" | "headToHead" | "creatorRoom",
+	mode: "classic" | "headToHead" | "creatorRoom" | "vsAI",
 	selectedMaps: string[],
 	totalRounds: number,
 	roundSeconds: number,

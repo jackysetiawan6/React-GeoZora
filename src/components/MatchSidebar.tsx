@@ -14,6 +14,7 @@ import type { MapRegion } from "../lib/MapRegions";
 import GuessMiniMap from "./GuessMiniMap";
 import { type MatchRoom } from "../lib/Matchmaking";
 import ChatPanel from "./match/ChatPanel";
+import VirtualChatPanel from "./match/VirtualChatPanel";
 
 export default function MatchSidebar({
 	mode,
@@ -55,6 +56,8 @@ export default function MatchSidebar({
 	isHost = false,
 	participantNames = {},
 	activeParticipants,
+	virtualMessages = [],
+	onSendVirtualMessage,
 }: {
 	mode: GameModeId;
 	currentRoundIndex: number;
@@ -95,6 +98,8 @@ export default function MatchSidebar({
 	room?: MatchRoom | null;
 	isHost?: boolean;
 	participantNames?: Record<string, string>;
+	virtualMessages?: any[];
+	onSendVirtualMessage?: (content: string) => void;
 }) {
 	const { user } = useAuth();
 	const isCreator = mode === "creatorRoom";
@@ -107,7 +112,7 @@ export default function MatchSidebar({
 
 	const isReveal = phase === "reveal";
 	const isRoomMatch = mode === "headToHead" || mode === "creatorRoom";
-	const shouldForceShowHistory = (phase === "reveal" || phase === "finished") && isRoomMatch;
+	const shouldForceShowHistory = (phase === "reveal" || phase === "finished") && (isRoomMatch || mode === "vsAI");
 
 	// Close chat if history is forced open
 	useEffect(() => {
@@ -347,7 +352,7 @@ export default function MatchSidebar({
 								</div>
 							</div>
 
-							{mode === "headToHead" || mode === "creatorRoom" ?
+							{mode === "headToHead" || mode === "creatorRoom" || mode === "vsAI" ?
 								<div className="rounded-xl border border-white/10 bg-white/5 p-4">
 									<div className="text-white/60 font-medium text-sm mb-3 flex items-center justify-between">
 										<span>Room Leaderboard</span>
@@ -441,6 +446,18 @@ export default function MatchSidebar({
 					/>
 				)}
 
+				{mode === "vsAI" && virtualMessages && onSendVirtualMessage && (
+					<VirtualChatPanel
+						messages={virtualMessages}
+						onSendMessage={onSendVirtualMessage}
+						phase={phase}
+						variant="sidebar"
+						isExpanded={chatExpanded}
+						setIsExpanded={setChatExpanded}
+						onUnreadCountChange={setChatUnreadCount}
+					/>
+				)}
+
 				<div className="flex items-center gap-3">
 					{(hasHistory || isCreator) && !shouldForceShowHistory && (
 						<button
@@ -454,7 +471,7 @@ export default function MatchSidebar({
 						</button>
 					)}
 
-					{isRoomMatch && room && !shouldForceShowHistory && (
+					{(isRoomMatch || mode === "vsAI") && !shouldForceShowHistory && (
 						<button
 							onClick={toggleChat}
 							className={cn(

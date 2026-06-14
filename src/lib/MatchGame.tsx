@@ -103,9 +103,9 @@ export const MODE_CONFIGS: Record<GameModeId, ModeConfig> = {
     label: 'VS AI',
     rounds: 5,
     seconds: 30,
-    description: 'Test your skills against an AI opponent. Coming soon.',
+    description: 'Test your skills against an AI opponent. Choose from 5 bot levels!',
     multiplayer: false,
-    enabled: false,
+    enabled: true,
     icon: <Cpu />,
     bgImg: 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=600&auto=format&fit=crop',
     sort_order: 2,
@@ -165,7 +165,7 @@ export async function loadGameModes(): Promise<void> {
               seconds: row.seconds,
               description: row.description,
               multiplayer: row.multiplayer,
-              enabled: row.enabled,
+              enabled: id === 'vsAI' ? true : row.enabled,
               bgImg: row.bg_img || MODE_CONFIGS[id].bgImg,
                 sort_order: row.sort_order ?? MODE_CONFIGS[id].sort_order,
             };
@@ -545,4 +545,40 @@ export function formatDistance(distanceKm: number, metric = 'km') {
 
 export function formatScore(score: number) {
   return score.toLocaleString();
+}
+
+/**
+ * Generates a random coordinate at a given distance range and bearing from the target
+ */
+export function calculateBotGuess(target: LatLng, minDistKm: number, maxDistKm: number): LatLng {
+  const R = 6371; // Earth's radius in km
+  const distKm = Math.random() * (maxDistKm - minDistKm) + minDistKm;
+  const bearingRad = Math.random() * 2 * Math.PI;
+  const angularDist = distKm / R;
+
+  const lat1Rad = (target.lat * Math.PI) / 180;
+  const lng1Rad = (target.lng * Math.PI) / 180;
+
+  const lat2Rad = Math.asin(
+    Math.sin(lat1Rad) * Math.cos(angularDist) +
+      Math.cos(lat1Rad) * Math.sin(angularDist) * Math.cos(bearingRad)
+  );
+
+  let lng2Rad =
+    lng1Rad +
+    Math.atan2(
+      Math.sin(bearingRad) * Math.sin(angularDist) * Math.cos(lat1Rad),
+      Math.cos(angularDist) - Math.sin(lat1Rad) * Math.sin(lat2Rad)
+    );
+
+  // Normalize longitude to -180 to 180
+  let lat2 = (lat2Rad * 180) / Math.PI;
+  let lng2 = (lng2Rad * 180) / Math.PI;
+
+  lng2 = ((((lng2 + 180) % 360) + 360) % 360) - 180;
+
+  // Bound latitude
+  lat2 = Math.max(-85, Math.min(85, lat2));
+
+  return { lat: lat2, lng: lng2 };
 }

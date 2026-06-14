@@ -13,12 +13,14 @@ import {
 	getRoundCount,
 	getRoundSeconds,
 	haversineKm,
+	calculateBotGuess,
 } from "../lib/MatchGame";
 import type { MapRegion } from "../lib/MapRegions";
 import {
 	updateStatsAfterClassic,
 	updateStatsAfterH2H,
 	updateStatsAfterCreatorRoom,
+	updateStatsAfterVsAi,
 	saveMatchHistory,
 	calculateEloChange,
 	calculateExpGain,
@@ -58,6 +60,204 @@ import { useDoubleBufferedStreetView } from "./match/useDoubleBufferedStreetView
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_PLATFORM_KEY ?? "";
 
+const BOT_CONFIGS = {
+	1: {
+		name: "Lost Lucy",
+		emoji: "🎒",
+		minDist: 2000,
+		maxDist: 6000,
+		minTime: 15,
+		maxTime: 25,
+		avatar: "🎒",
+		quotes: {
+			start: [
+				"Hi! Where are we? I hope there are no spiders.",
+				"This road looks pretty, but I have no idea where it is.",
+				"🎒 Ready! Let's go!"
+			],
+			guess: [
+				"I found a red mailbox! I think we are in Canada.",
+				"This landscape looks kinda like my backyard.",
+				"I guessed! Hope it's close!"
+			],
+			winRound: [
+				"Wait, did I actually win?",
+				"Yay! Lucy for the win!",
+				"Lucky guess!"
+			],
+			loseRound: [
+				"Oh, that's far.",
+				"How did you know it was there?",
+				"I was only 4,000 miles off..."
+			],
+			gameOverWin: [
+				"I won! I need to tell my mom!",
+				"GG! That was super fun!"
+			],
+			gameOverLose: [
+				"GG! You're really good at this.",
+				"Next time I'll bring a map."
+			]
+		}
+	},
+	2: {
+		name: "Wandering Will",
+		emoji: "🥾",
+		minDist: 1000,
+		maxDist: 2000,
+		minTime: 12,
+		maxTime: 20,
+		avatar: "🥾",
+		quotes: {
+			start: [
+				"Hey! Nice day for a hike.",
+				"Wandering around is my favorite hobby.",
+				"🥾 Let's see where the road takes us."
+			],
+			guess: [
+				"I think I saw a tree like this in Spain... or maybe Brazil.",
+				"Feels like Europe, but could be Oregon.",
+				"Done! Placed my pin."
+			],
+			winRound: [
+				"Awesome, got it right!",
+				"Walking is good, but winning is better!",
+				"Nice, I was closer."
+			],
+			loseRound: [
+				"Ah, I went the wrong way.",
+				"You got me there.",
+				"Ah, wrong continent again."
+			],
+			gameOverWin: [
+				"GG! Wandering Will wins today!",
+				"Great match, thanks for playing!"
+			],
+			gameOverLose: [
+				"GG! You walk faster than me.",
+				"Nice game. Time for another hike!"
+			]
+		}
+	},
+	3: {
+		name: "Navigator Nick",
+		emoji: "🧭",
+		minDist: 400,
+		maxDist: 1000,
+		minTime: 10,
+		maxTime: 18,
+		avatar: "🧭",
+		quotes: {
+			start: [
+				"Compass calibrated. Let's do this.",
+				"Greetings! May the best navigator win.",
+				"🧭 Pointing North and ready."
+			],
+			guess: [
+				"Sun elevation suggests Southern Hemisphere.",
+				"Looking at the road lines and architecture.",
+				"Guess locked in. What do you think?"
+			],
+			winRound: [
+				"Classic navigation pays off!",
+				"Got the right country.",
+				"Calculated well!"
+			],
+			loseRound: [
+				"Ah, I misjudged the sun angle.",
+				"Very impressive guess by you.",
+				"A bit off, my compass failed me."
+			],
+			gameOverWin: [
+				"GG! The compass never lies.",
+				"A successful expedition!"
+			],
+			gameOverLose: [
+				"GG! You are a master navigator.",
+				"Excellent work, I learned a lot."
+			]
+		}
+	},
+	4: {
+		name: "Geographer Grace",
+		emoji: "🧠",
+		minDist: 100,
+		maxDist: 400,
+		minTime: 8,
+		maxTime: 15,
+		avatar: "🧠",
+		quotes: {
+			start: [
+				"I've memorized the road markings of 150 countries. Good luck.",
+				"Let's see if you know your license plates.",
+				"🧠 Ready for a intellectual duel."
+			],
+			guess: [
+				"That specific telephone pole design is only found in Romania.",
+				"This soil type and driving side narrows it down.",
+				"My analysis is complete."
+			],
+			winRound: [
+				"Correct plate identification.",
+				"Excellent, right region.",
+				"Perfect geoguessing."
+			],
+			loseRound: [
+				"Ah, I mistook the road paint for Senegal.",
+				"Wow, amazing accuracy!",
+				"A slight miscalculation on my part."
+			],
+			gameOverWin: [
+				"GG! Geography wins again.",
+				"A very stimulating match!"
+			],
+			gameOverLose: [
+				"GG! Your geography is outstanding.",
+				"Incredible performance, congrats!"
+			]
+		}
+	},
+	5: {
+		name: "T-1000 GeoBot",
+		emoji: "🤖",
+		minDist: 0,
+		maxDist: 100,
+		minTime: 4,
+		maxTime: 8,
+		avatar: "🤖",
+		quotes: {
+			start: [
+				"Topography scan initiated. Human victory probability: 0.04%.",
+				"SYSTEM ONLINE. PREPARE FOR DEFEAT.",
+				"🤖 TARGET ACQUIRED."
+			],
+			guess: [
+				"Scanning pixel values of camera generation.",
+				"Calculating coordinate probability matrix.",
+				"GUESS LOCKED. SCORE POTENTIAL: HIGH."
+			],
+			winRound: [
+				"Calculation correct within 50 meters.",
+				"I know every tree on this planet.",
+				"Optimal coordinates placed."
+			],
+			loseRound: [
+				"ERROR: Camera model anomaly. High accuracy on your part.",
+				"Database mismatch. Well played, human.",
+				"Anomaly detected in my neural net."
+			],
+			gameOverWin: [
+				"HUMANITY HAS BEEN DEFEATED.",
+				"VICTORY ACHIEVED. GG."
+			],
+			gameOverLose: [
+				"ERROR: BOT LOST. INCREDIBLE SKILL DETECTED.",
+				"GG. YOU ARE INDEED A GEO MASTER."
+			]
+		}
+	}
+};
+
 type MatchProps = {
 	selectedMode: GameModeId;
 	selectedMaps: MapRegion[];
@@ -73,6 +273,7 @@ type MatchProps = {
 	h2hOpponentId?: string | null;
 	h2hOpponentElo?: number;
 	h2hIsHost?: boolean;
+	botLevel?: number;
 };
 
 export default function Match({
@@ -89,8 +290,72 @@ export default function Match({
 	h2hOpponentId = null,
 	h2hOpponentElo = 1300,
 	h2hIsHost = false,
+	botLevel = 3,
 }: MatchProps) {
 	const { user } = useAuth();
+
+	// Bot config/state for vsAI mode
+	const currentBot = useMemo(() => {
+		return BOT_CONFIGS[botLevel as 1 | 2 | 3 | 4 | 5] || BOT_CONFIGS[3];
+	}, [botLevel]);
+
+	const [virtualMessages, setVirtualMessages] = useState<any[]>([]);
+	const botTimerRef = useRef<number | null>(null);
+	const botGuessRef = useRef<LatLng | null>(null);
+	const botScoreRef = useRef<number>(0);
+
+	const sendBotChatMessage = useCallback((text: string) => {
+		setVirtualMessages(prev => [
+			...prev,
+			{
+				id: Math.random().toString(36).substring(2, 9),
+				room_id: "vsAI",
+				user_id: "bot",
+				username: currentBot.name,
+				avatar_url: null,
+				content: text,
+				is_system: false,
+				message_type: "text",
+				created_at: new Date().toISOString(),
+				edited_at: null,
+				is_deleted: false,
+				reactions: {},
+				metadata: {}
+			}
+		]);
+	}, [currentBot.name]);
+
+	const handleSendVirtualMessage = useCallback((content: string) => {
+		const userMsg = {
+			id: Math.random().toString(36).substring(2, 9),
+			room_id: "vsAI",
+			user_id: user?.uid ?? "player",
+			username: user?.displayName ?? "Player",
+			avatar_url: user?.avatarUrl ?? null,
+			content: content,
+			is_system: false,
+			message_type: "text" as const,
+			created_at: new Date().toISOString(),
+			edited_at: null,
+			is_deleted: false,
+			reactions: {},
+			metadata: {}
+		};
+		setVirtualMessages(prev => [...prev, userMsg]);
+
+		setTimeout(() => {
+			const replies = [
+				"Nice talking to you! Now focus on the map!",
+				"I'm scanning the clouds right now, talk later!",
+				"Did you know the sun orientation here tells us everything?",
+				"Focus, human! The clock is ticking!",
+				"Interesting. My sensors are currently analyzing this post.",
+				"Hmm... I think I've been here before.",
+			];
+			const randomReply = replies[Math.floor(Math.random() * replies.length)];
+			sendBotChatMessage(randomReply);
+		}, 1500);
+	}, [user, sendBotChatMessage]);
 
 	const [phase, setPhase] = useState<GamePhase>("loading");
 	const [currentRoundIndex, setCurrentRoundIndex] = useState(0);
@@ -203,14 +468,95 @@ export default function Match({
 	>;
 	const [roundSubmissions, setRoundSubmissions] = useState<SubmissionsMap>({});
 	const roundSubmissionsRef = useRef<SubmissionsMap>({});
+
+	const triggerBotGuess = useCallback(() => {
+		if (phaseRef.current !== "playing" || botGuessRef.current || !target) return;
+
+		const guessLoc = calculateBotGuess(target, currentBot.minDist, currentBot.maxDist);
+		botGuessRef.current = guessLoc;
+
+		const dist = haversineKm(guessLoc, target);
+		const botSecsLeft = remainingSec;
+		const score = calculateScore(dist, botSecsLeft, roundSeconds, false);
+
+		setRoundSubmissions(prev => {
+			const next = { ...prev };
+			if (!next[currentRoundIndexRef.current]) next[currentRoundIndexRef.current] = {};
+			next[currentRoundIndexRef.current] = {
+				...next[currentRoundIndexRef.current],
+				["bot"]: { score, guess: guessLoc }
+			};
+			roundSubmissionsRef.current = next;
+			return next;
+		});
+
+		setOpponentScore(prev => {
+			const next = prev + score;
+			opponentScoreRef.current = next;
+			return next;
+		});
+
+		setAllScores(prev => {
+			const next = { ...prev, ["bot"]: (prev["bot"] || 0) + score };
+			allScoresRef.current = next;
+			return next;
+		});
+
+		setOpponentRoundDone(true);
+		audioManager.playSfx("guessSubmit");
+
+		const guessQuotes = currentBot.quotes.guess;
+		const quote = guessQuotes[Math.floor(Math.random() * guessQuotes.length)];
+		sendBotChatMessage(quote);
+	}, [target, currentBot, remainingSec, roundSeconds, sendBotChatMessage]);
+
+	// Schedule bot guess when round starts playing
+	useEffect(() => {
+		if (phase === "playing" && selectedMode === "vsAI" && target) {
+			const thinkTime = Math.floor(Math.random() * (currentBot.maxTime - currentBot.minTime + 1)) + currentBot.minTime;
+
+			// Chat greeting shortly after start
+			const greetTimer = setTimeout(() => {
+				const startQuotes = currentBot.quotes.start;
+				const quote = startQuotes[Math.floor(Math.random() * startQuotes.length)];
+				sendBotChatMessage(quote);
+			}, 2000);
+
+			if (botTimerRef.current) window.clearTimeout(botTimerRef.current);
+
+			botTimerRef.current = window.setTimeout(() => {
+				triggerBotGuess();
+			}, thinkTime * 1000);
+
+			return () => {
+				clearTimeout(greetTimer);
+				if (botTimerRef.current) window.clearTimeout(botTimerRef.current);
+			};
+		}
+	}, [phase, currentRoundIndex, selectedMode, currentBot, target, triggerBotGuess, sendBotChatMessage]);
+
+	// Fast-forward bot guess if player guesses first
+	useEffect(() => {
+		if (phase === "waiting_for_others" && selectedMode === "vsAI") {
+			if (!opponentRoundDone) {
+				if (botTimerRef.current) {
+					window.clearTimeout(botTimerRef.current);
+				}
+				botTimerRef.current = window.setTimeout(() => {
+					triggerBotGuess();
+				}, 1500);
+			}
+		}
+	}, [phase, selectedMode, opponentRoundDone, triggerBotGuess]);
+
 	const revealStandings = useMemo(() => {
-		if (!isRoomMatch || Object.keys(allScores).length === 0) return [];
+		if ((!isRoomMatch && roomMode !== "vsAI") || Object.keys(allScores).length === 0) return [];
 
 		const currentRoundScores = roundSubmissions[currentRoundIndex] || {};
 		const entries = (Object.entries(allScores) as Array<[string, number]>).map(
 			([uid, totalScore]) => {
 			const roundScore = currentRoundScores[uid]?.score ?? 0;
-			const isOffline = !activeParticipants.has(uid);
+			const isOffline = uid === "bot" ? false : !activeParticipants.has(uid);
 			return {
 				uid,
 				label:
@@ -255,6 +601,15 @@ export default function Match({
 	]);
 
 	useEffect(() => {
+		if (roomMode === "vsAI") {
+			const currentBot = BOT_CONFIGS[botLevel as 1 | 2 | 3 | 4 | 5] || BOT_CONFIGS[3];
+			setParticipantNames({
+				[user?.uid ?? "player"]: user?.displayName || "Player",
+				["bot"]: currentBot.name
+			});
+			return;
+		}
+
 		if (!isRoomMatch || !user?.uid) {
 			if (Object.keys(participantNames).length > 0) {
 				setParticipantNames({});
@@ -564,7 +919,7 @@ export default function Match({
 	}, [phase, user?.uid]);
 
 	const playerTotals = useMemo(() => {
-		if (isRoomMatch) {
+		if (isRoomMatch || roomMode === "vsAI") {
 			return { 1: totalScore, 2: opponentScore };
 		}
 
@@ -575,14 +930,14 @@ export default function Match({
 			},
 			{ 1: 0, 2: 0 } as Record<1 | 2, number>,
 		);
-	}, [history, isRoomMatch, opponentScore, totalScore]);
+	}, [history, isRoomMatch, roomMode, opponentScore, totalScore]);
 
 	const activePlayerLabel = useMemo(() => {
-		return isRoomMatch ? "You" : "Solo";
-	}, [isRoomMatch]);
+		return isRoomMatch || roomMode === "vsAI" ? "You" : "Solo";
+	}, [isRoomMatch, roomMode]);
 
 	const winnerText = useMemo(() => {
-		if (isRoomMatch) {
+		if (isRoomMatch || roomMode === "vsAI") {
 			if (playerTotals[1] === playerTotals[2]) return "It is a draw!";
 			return playerTotals[1] > playerTotals[2] ?
 					"You win the duel!"
@@ -596,12 +951,16 @@ export default function Match({
 		if (roomMode === "chaos") return "Chaos Mode is coming soon.";
 
 		return "";
-	}, [history.length, isRoomMatch, playerTotals, roomMode, totalScore]);
+	}, [history.length, isRoomMatch, roomMode, playerTotals, totalScore]);
 
 	const clearTimers = useCallback(() => {
 		if (nextRoundTimerRef.current) {
 			window.clearTimeout(nextRoundTimerRef.current);
 			nextRoundTimerRef.current = null;
+		}
+		if (botTimerRef.current) {
+			window.clearTimeout(botTimerRef.current);
+			botTimerRef.current = null;
 		}
 	}, []);
 
@@ -865,6 +1224,62 @@ export default function Match({
 						console.error("Failed to delete classic backing room:", deleteError);
 					}
 				}
+			} else if (roomMode === "vsAI") {
+				const result: "win" | "loss" | "draw" =
+					totalScore > opponentScore ? "win"
+					: totalScore < opponentScore ? "loss"
+					: "draw";
+
+				const updatedStats = await updateStatsAfterVsAi(
+					user.uid,
+					totalScore,
+					history.length,
+					result,
+					backingRoomId
+				);
+				if (!updatedStats) {
+					toast.error("Failed to sync progression stats. EXP may not be saved.");
+					void logSystemError("VS AI stats progression failure", {
+						userId: user.uid,
+						totalScore,
+						rounds: history.length,
+						result,
+					});
+				}
+
+				const expGain = calculateExpGain("vsAI", totalScore, result);
+
+				await saveMatchHistory(
+					user.uid,
+					null,
+					user.displayName || "Player",
+					currentBot.name,
+					totalScore,
+					opponentScore,
+					"vsAI",
+					stableSelectedMaps.map(m => m),
+					roundCount,
+					roundSeconds,
+					{
+						no_moving: false,
+						no_panning: false,
+						no_zooming: false,
+						real_duration: realDuration,
+					},
+					{
+						player1: expGain,
+					},
+				);
+
+				if (backingRoomId) {
+					const { error: deleteError } = await supabase
+						.from("match_rooms")
+						.delete()
+						.eq("id", backingRoomId);
+					if (deleteError) {
+						console.error("Failed to delete VS AI backing room:", deleteError);
+					}
+				}
 			}
 		};
 
@@ -892,6 +1307,7 @@ export default function Match({
 		matchEndedReason,
 		allScores,
 		backingRoomId,
+		currentBot,
 	]);
 
 	const resetMatchState = useCallback(() => {
@@ -992,7 +1408,7 @@ export default function Match({
 				let firstTarget: StreetViewTarget | null = null;
 				let secondTarget: StreetViewTarget | null = null;
 
-				if (mode === "classic") {
+				if (mode === "classic" || mode === "vsAI") {
 					const initialSeedCount = Math.min(2, resolvedRounds);
 					const initialTargets = await seedInitialTargets(mode, resolvedRounds, initialSeedCount);
 
@@ -1001,23 +1417,23 @@ export default function Match({
 					firstTarget = initialTargets[0] || null;
 					secondTarget = initialTargets[1] || null;
 
-					const classicRoomId = `classic_${user.uid}_${Date.now()}`;
+					const backingRoomId = `${mode}_${user.uid}_${Date.now()}`;
 					
-					// Cleanup any orphaned classic rooms for this user
+					// Cleanup any orphaned classic/vsAI rooms for this user
 					try {
 						await supabase
 							.from("match_rooms")
 							.delete()
 							.eq("player1_id", user.uid)
-							.eq("mode", "classic");
+							.eq("mode", mode);
 					} catch (e) {
-						console.warn("Failed to cleanup old classic rooms:", e);
+						console.warn(`Failed to cleanup old ${mode} rooms:`, e);
 					}
 
 					const { error: roomError } = await supabase
 						.from("match_rooms")
 						.insert({
-							id: classicRoomId,
+							id: backingRoomId,
 							player1_id: user.uid,
 							targets: initialTargets,
 							total_rounds: resolvedRounds,
@@ -1029,23 +1445,17 @@ export default function Match({
 							selected_maps: stableSelectedMaps,
 							status: "playing",
 							current_round: 1,
-							mode: "classic",
+							mode: mode,
 						});
 
 					if (roomError) {
-						console.error("Failed to create backing room for classic match:", roomError);
+						console.error(`Failed to create backing room for ${mode} match:`, roomError);
 						toast.warning("Server connection failed. Telemetry and statistics might not be saved.");
-						void logSystemError("Classic backing room creation failure", {
-							userId: user.uid,
-							error: roomError.message,
-							code: roomError.code,
-							classicRoomId,
-						});
 						setBackingRoomId(null);
 					} else {
-						setBackingRoomId(classicRoomId);
+						setBackingRoomId(backingRoomId);
 						setLocalRoom({
-							id: classicRoomId,
+							id: backingRoomId,
 							player1_id: user.uid,
 							targets: initialTargets,
 							total_rounds: resolvedRounds,
@@ -1057,8 +1467,31 @@ export default function Match({
 							selected_maps: stableSelectedMaps,
 							status: "playing",
 							current_round: 1,
-							mode: "classic",
+							mode: mode,
 						} as any);
+					}
+
+					if (mode === "vsAI") {
+						const initScores = {
+							[user?.uid ?? "player"]: 0,
+							["bot"]: 0
+						};
+						setAllScores(initScores);
+						allScoresRef.current = initScores;
+						setOpponentScore(0);
+						opponentScoreRef.current = 0;
+						setTotalScore(0);
+						totalScoreRef.current = 0;
+						setHistory([]);
+						setRoundSubmissions({});
+						roundSubmissionsRef.current = {};
+						setVirtualMessages([]);
+
+						// Bot greeting
+						setTimeout(() => {
+							const currentBot = BOT_CONFIGS[botLevel as 1 | 2 | 3 | 4 | 5] || BOT_CONFIGS[3];
+							sendBotChatMessage(currentBot.quotes.start[0]);
+						}, 2000);
 					}
 
 					if (initialSeedCount < resolvedRounds) {
@@ -1068,19 +1501,19 @@ export default function Match({
 									API_KEY,
 									stableSelectedMaps,
 									resolvedRounds - initialSeedCount,
-									"classic"
+									mode
 								);
 								const combinedTargets = [...initialTargets, ...remainingTargets];
 								
 								// Update in database
-								await updateRoom(classicRoomId, {
+								await updateRoom(backingRoomId, {
 									targets: combinedTargets,
 								});
 								
 								// Update locally
 								setLocalRoom(prev => prev ? { ...prev, targets: combinedTargets } : null);
 							} catch (backgroundError) {
-								console.error("Failed to generate background targets for classic:", backgroundError);
+								console.error(`Failed to generate background targets for ${mode}:`, backgroundError);
 							}
 						})();
 					}
@@ -1564,7 +1997,7 @@ export default function Match({
 	);
 
 	const finishMatch = useCallback(async () => {
-		if (isRoomMatch && localRoom) {
+		if ((isRoomMatch || roomMode === "vsAI") && localRoom) {
 			const p1Final = totalScoreRef.current;
 			const p2Final = opponentScoreRef.current;
 			let winnerId: string | null = null;
@@ -1580,6 +2013,8 @@ export default function Match({
 				}
 			} else if (roomMode === "classic") {
 				winnerId = user?.uid ?? null;
+			} else if (roomMode === "vsAI") {
+				winnerId = p1Final > p2Final ? (user?.uid ?? null) : p1Final < p2Final ? "bot" : null;
 			} else {
 				winnerId =
 					p1Final > p2Final ? (user?.uid ?? null)
@@ -1601,7 +2036,11 @@ export default function Match({
 			};
 
 			if (user?.uid) finalScoresMap[user.uid] = p1Final;
-			if (h2hOpponentId) finalScoresMap[h2hOpponentId] = p2Final;
+			if (roomMode === "vsAI") {
+				finalScoresMap["bot"] = p2Final;
+			} else if (h2hOpponentId) {
+				finalScoresMap[h2hOpponentId] = p2Final;
+			}
 
 			const roomUpdates: Record<string, any> = {
 				scores: finalScoresMap,
@@ -1609,9 +2048,12 @@ export default function Match({
 				winner_id: winnerId,
 			};
 
-			if (roomMode !== "creatorRoom" && roomMode !== "classic") {
+			if (roomMode !== "creatorRoom" && roomMode !== "classic" && roomMode !== "vsAI") {
 				roomUpdates.player1_score = h2hIsHost ? p1Final : p2Final;
 				roomUpdates.player2_score = h2hIsHost ? p2Final : p1Final;
+			} else if (roomMode === "vsAI") {
+				roomUpdates.player1_score = p1Final;
+				roomUpdates.player2_score = p2Final;
 			}
 
 			await updateRoom(localRoom.id, roomUpdates);
@@ -1628,6 +2070,17 @@ export default function Match({
 			}
 		}
 
+		if (roomMode === "vsAI") {
+			const p1Final = totalScoreRef.current;
+			const p2Final = opponentScoreRef.current;
+			const wonMatch = p1Final > p2Final;
+			const quotes = wonMatch ? currentBot.quotes.gameOverLose : currentBot.quotes.gameOverWin;
+			const quote = quotes[Math.floor(Math.random() * quotes.length)];
+			setTimeout(() => {
+				sendBotChatMessage(quote);
+			}, 1500);
+		}
+
 		setPhase("finished");
 	}, [
 		h2hIsHost,
@@ -1636,6 +2089,8 @@ export default function Match({
 		isRoomMatch,
 		roomMode,
 		user?.uid,
+		currentBot,
+		sendBotChatMessage,
 	]);
 
 	const goToNextRound = useCallback(async () => {
@@ -1697,6 +2152,20 @@ export default function Match({
 			void ensureTargetsAhead(currentRoundIndex, roomMode, roundCount, 3);
 		}
 
+		if (roomMode === "vsAI") {
+			setTimeout(() => {
+				const currentSubs = roundSubmissionsRef.current[currentRoundIndex] || {};
+				const playerSub = currentSubs[user?.uid ?? "player"];
+				const botSub = currentSubs["bot"];
+				if (playerSub && botSub) {
+					const wonRound = playerSub.score > botSub.score;
+					const quotes = wonRound ? currentBot.quotes.loseRound : currentBot.quotes.winRound;
+					const quote = quotes[Math.floor(Math.random() * quotes.length)];
+					sendBotChatMessage(quote);
+				}
+			}, 2000);
+		}
+
 		nextRoundTimerRef.current = window.setTimeout(() => {
 			if (currentRoundIndex >= roundCount) {
 				void finishMatch();
@@ -1716,6 +2185,9 @@ export default function Match({
 		roomMode,
 		target,
 		finishMatch,
+		currentBot,
+		sendBotChatMessage,
+		user?.uid,
 	]);
 
 	const submitGuess = useCallback(
@@ -1798,16 +2270,7 @@ export default function Match({
 			setTotalScore(nextTotalScore);
 			setLocationName("");
 
-			if (isRoomMatch && channelRef.current && roomMode !== "classic") {
-				broadcastToRoom(channelRef.current, {
-					type: "guess_submitted",
-					userId: user?.uid ?? "",
-					round: currentRoundIndex,
-					score: verifiedScore,
-					distanceKm: verifiedDistanceKm,
-					guess: usedGuess,
-				});
-
+			if ((isRoomMatch || roomMode === "vsAI") && roomMode !== "classic") {
 				if (user?.uid) {
 					setAllScores(prev => {
 						const next = { ...prev, [user.uid]: nextTotalScore };
@@ -1824,6 +2287,17 @@ export default function Match({
 						};
 						roundSubmissionsRef.current = next;
 						return next;
+					});
+				}
+
+				if (isRoomMatch && channelRef.current) {
+					broadcastToRoom(channelRef.current, {
+						type: "guess_submitted",
+						userId: user?.uid ?? "",
+						round: currentRoundIndex,
+						score: verifiedScore,
+						distanceKm: verifiedDistanceKm,
+						guess: usedGuess,
 					});
 				}
 
@@ -1851,11 +2325,16 @@ export default function Match({
 	);
 
 	useEffect(() => {
-		if (phase === "waiting_for_others" && isRoomMatch) {
+		if (phase === "waiting_for_others" && (isRoomMatch || roomMode === "vsAI")) {
 			let isEveryoneDone = true;
 			const currentSubs = roundSubmissions[currentRoundIndex] || {};
 
-			if (selectedMode === "headToHead" && localRoom) {
+			if (roomMode === "vsAI") {
+				const myId = user?.uid ?? "player";
+				if (!currentSubs[myId] || !currentSubs["bot"]) {
+					isEveryoneDone = false;
+				}
+			} else if (selectedMode === "headToHead" && localRoom) {
 				const expected = localRoom.participants || [];
 				if (expected.length === 0) isEveryoneDone = false;
 				for (const pid of expected) {
@@ -1885,12 +2364,14 @@ export default function Match({
 	}, [
 		phase,
 		isRoomMatch,
+		roomMode,
 		roundSubmissions,
 		currentRoundIndex,
 		activeParticipants,
 		localRoom,
 		selectedMode,
 		finalizeReveal,
+		user?.uid,
 	]);
 
 	useEffect(() => {
@@ -2270,7 +2751,7 @@ export default function Match({
 						showHint={showHint}
 						onQuit={handleQuitClick}
 						onReport={() => setIsReportModalOpen(true)}
-						isRoomMatch={isRoomMatch}
+						isRoomMatch={isRoomMatch || selectedMode === "vsAI"}
 					/>
 
 					{phase === "reveal" && currentResult && target && (
@@ -2368,7 +2849,7 @@ export default function Match({
 					userAvatar={user?.avatarUrl || user?.photoURL}
 					onRestart={restartCurrentMode}
 					onBackToDashboard={onBackToDashboard}
-					isRoomMatch={isRoomMatch && selectedMode !== "classic"}
+					isRoomMatch={(isRoomMatch || selectedMode === "vsAI") && selectedMode !== "classic"}
 					winnerId={localRoom?.winner_id}
 					userId={user?.uid}
 					matchEndedReason={matchEndedReason}

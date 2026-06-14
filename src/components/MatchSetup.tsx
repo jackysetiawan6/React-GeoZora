@@ -99,6 +99,8 @@ function GameSettingsPanel({
 	setNoZooming,
 	enableTimeMultiplier,
 	setEnableTimeMultiplier,
+	botLevel = 3,
+	setBotLevel = () => {},
 }: {
 	selectedMode: GameModeId;
 	customRounds: number | "";
@@ -113,78 +115,130 @@ function GameSettingsPanel({
 	setNoZooming: (val: boolean) => void;
 	enableTimeMultiplier: boolean;
 	setEnableTimeMultiplier: (val: boolean) => void;
+	botLevel?: number;
+	setBotLevel?: (val: number) => void;
 }) {
 	const isCreator = selectedMode === "creatorRoom";
 	const rounds = selectedMode === "headToHead" ? 10 : 5;
-	const seconds = selectedMode === "headToHead" ? 30 : 60;
+	const seconds = selectedMode === "headToHead" || selectedMode === "vsAI" ? 30 : 60;
+
+	const BOT_LEVELS = [
+		{ level: 1, name: "Lost Lucy", emoji: "🎒", desc: "Newbie (2000km+ off)" },
+		{ level: 2, name: "Wandering Will", emoji: "🥾", desc: "Easy (1000-2000km off)" },
+		{ level: 3, name: "Navigator Nick", emoji: "🧭", desc: "Medium (400-1000km off)" },
+		{ level: 4, name: "Geographer Grace", emoji: "🧠", desc: "Hard (100-400km off)" },
+		{ level: 5, name: "T-1000 GeoBot", emoji: "🤖", desc: "Expert (0-100km off)" },
+	];
 
 	return (
 		<div className="flex flex-col gap-4">
 			<h3 className="text-xs font-black uppercase tracking-widest text-[var(--color-app-text-muted)] flex items-center gap-2">
 				<Gamepad2 className="w-4 h-4" /> Game Settings
 			</h3>
-			<div className="grid grid-cols-2 gap-3">
-				{isCreator ?
-					<>
-						<NumericInput
-							label="Rounds"
-							min={5}
-							max={30}
-							value={customRounds}
-							onChange={setCustomRounds}
-						/>
-						<NumericInput
-							label="Time"
-							min={20}
-							max={90}
-							step={5}
-							value={customSeconds}
-							onChange={setCustomSeconds}
-							suffix="s"
-						/>
+			<div className="flex flex-col gap-3">
+				<div className="grid grid-cols-2 gap-3">
+					{isCreator ?
+						<>
+							<NumericInput
+								label="Rounds"
+								min={5}
+								max={30}
+								value={customRounds}
+								onChange={setCustomRounds}
+							/>
+							<NumericInput
+								label="Time"
+								min={20}
+								max={90}
+								step={5}
+								value={customSeconds}
+								onChange={setCustomSeconds}
+								suffix="s"
+							/>
+						</>
+					:	<>
+							<div className="bg-[var(--color-app-panel)] border border-[var(--color-app-border-light)] p-4 rounded-xl">
+								<span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-app-text-muted)] block mb-2">
+									Rounds
+								</span>
+								<span className="text-lg font-mono font-bold text-[var(--color-app-text)]">
+									{rounds}
+								</span>
+							</div>
+							<div className="bg-[var(--color-app-panel)] border border-[var(--color-app-border-light)] p-4 rounded-xl">
+								<span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-app-text-muted)] block mb-2">
+									Time
+								</span>
+								<span className="text-lg font-mono font-bold text-[var(--color-app-text)]">
+									{seconds}s
+								</span>
+							</div>
+						</>
+					}
+				</div>
 
-						<div className="col-span-2 flex flex-col gap-3 mt-1 bg-[var(--color-app-panel)] border border-[var(--color-app-border-light)] p-4 rounded-xl">
-							<Toggle
-								label="No Moving"
-								checked={noMoving}
-								onChange={setNoMoving}
-							/>
-							<Toggle
-								label="No Panning"
-								checked={noPanning}
-								onChange={setNoPanning}
-							/>
-							<Toggle
-								label="No Zooming"
-								checked={noZooming}
-								onChange={setNoZooming}
-							/>
-							<Toggle
-								label="Time Multiplier"
-								checked={enableTimeMultiplier}
-								onChange={setEnableTimeMultiplier}
-							/>
+				{isCreator && (
+					<div className="flex flex-col gap-3 mt-1 bg-[var(--color-app-panel)] border border-[var(--color-app-border-light)] p-4 rounded-xl">
+						<Toggle
+							label="No Moving"
+							checked={noMoving}
+							onChange={setNoMoving}
+						/>
+						<Toggle
+							label="No Panning"
+							checked={noPanning}
+							onChange={setNoPanning}
+						/>
+						<Toggle
+							label="No Zooming"
+							checked={noZooming}
+							onChange={setNoZooming}
+						/>
+						<Toggle
+							label="Time Multiplier"
+							checked={enableTimeMultiplier}
+							onChange={setEnableTimeMultiplier}
+						/>
+					</div>
+				)}
+
+				{selectedMode === "vsAI" && (
+					<div className="flex flex-col gap-2 mt-2">
+						<span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-app-text-muted)] block">
+							AI Opponent
+						</span>
+						<div className="flex flex-col gap-1.5">
+							{BOT_LEVELS.map(bot => {
+								const active = botLevel === bot.level;
+								return (
+									<button
+										key={bot.level}
+										type="button"
+										onClick={() => setBotLevel(bot.level)}
+										className={cn(
+											"w-full text-left px-3 py-2.5 rounded-xl border transition-all text-xs flex items-center gap-2.5 cursor-pointer outline-none",
+											active ?
+												"bg-[var(--color-app-blue)]/10 border-[var(--color-app-blue)]/40 text-[var(--color-app-blue)] shadow-[0_0_12px_rgba(59,130,246,0.15)]"
+											:	"bg-[var(--color-app-panel)] border-[var(--color-app-border-light)] text-[var(--color-app-text-muted)] hover:border-white/20 hover:text-[var(--color-app-text)]",
+										)}>
+										<span className="text-lg shrink-0">{bot.emoji}</span>
+										<div className="min-w-0 flex-1">
+											<div className={cn("font-bold truncate", active ? "text-[var(--color-app-blue)]" : "text-[var(--color-app-text)]")}>
+												{bot.name}
+											</div>
+											<div className="text-[9px] text-[var(--color-app-text-muted)] truncate">
+												{bot.desc}
+											</div>
+										</div>
+										{active && (
+											<div className="w-1.5 h-1.5 rounded-full bg-[var(--color-app-blue)]" />
+										)}
+									</button>
+								);
+							})}
 						</div>
-					</>
-				:	<>
-						<div className="bg-[var(--color-app-panel)] border border-[var(--color-app-border-light)] p-4 rounded-xl">
-							<span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-app-text-muted)] block mb-2">
-								Rounds
-							</span>
-							<span className="text-lg font-mono font-bold text-[var(--color-app-text)]">
-								{rounds}
-							</span>
-						</div>
-						<div className="bg-[var(--color-app-panel)] border border-[var(--color-app-border-light)] p-4 rounded-xl">
-							<span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-app-text-muted)] block mb-2">
-								Time
-							</span>
-							<span className="text-lg font-mono font-bold text-[var(--color-app-text)]">
-								{seconds}s
-							</span>
-						</div>
-					</>
-				}
+					</div>
+				)}
 			</div>
 		</div>
 	);
@@ -208,6 +262,8 @@ export default function MatchSetup({
 	setNoZooming,
 	enableTimeMultiplier,
 	setEnableTimeMultiplier,
+	botLevel = 3,
+	setBotLevel = () => {},
 }: {
 	selectedMode: GameModeId;
 	setSelectedMode: (mode: GameModeId) => void;
@@ -226,6 +282,8 @@ export default function MatchSetup({
 	setNoZooming: (val: boolean) => void;
 	enableTimeMultiplier: boolean;
 	setEnableTimeMultiplier: (val: boolean) => void;
+	botLevel?: number;
+	setBotLevel?: (val: number) => void;
 }) {
 	const { theme } = useTheme();
 	const [searchQuery, setSearchQuery] = useState("");
@@ -338,6 +396,8 @@ export default function MatchSetup({
 						setNoZooming={setNoZooming}
 						enableTimeMultiplier={enableTimeMultiplier}
 						setEnableTimeMultiplier={setEnableTimeMultiplier}
+						botLevel={botLevel}
+						setBotLevel={setBotLevel}
 					/>
 				</div>
 			</aside>

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import GameModes from "./components/GameModes";
 import GlobeView from "./components/GlobeView";
 import Header from "./components/Header";
@@ -103,6 +103,7 @@ export default function App() {
 	};
 
 	const [selectedMode, setSelectedMode] = useState<GameModeId>("classic");
+	const [botLevel, setBotLevel] = useState<number>(3);
 	const hasRestoredMatchSessionRef = useRef(false);
 
 	// Determine if we have a saved session to restore on initial mount
@@ -963,6 +964,8 @@ export default function App() {
 							enableTimeMultiplier={enableTimeMultiplier}
 							setEnableTimeMultiplier={setEnableTimeMultiplier}
 							onStart={handleStartFromSetup}
+							botLevel={botLevel}
+							setBotLevel={setBotLevel}
 						/>
 					</div>
 				)}
@@ -1028,6 +1031,7 @@ export default function App() {
 							selectedMaps={selectedMaps}
 							customRounds={customRounds === "" ? 10 : customRounds}
 							customSeconds={customSeconds === "" ? 45 : customSeconds}
+							botLevel={botLevel}
 							onModeChange={handleModeChangeFromMatch}
 							onBackToDashboard={handleBackToDashboard}
 							onRoomReset={handleCreatorRoomReset}
