@@ -470,7 +470,7 @@ export default function Match({
 	const roundSubmissionsRef = useRef<SubmissionsMap>({});
 
 	const triggerBotGuess = useCallback(() => {
-		if (phaseRef.current !== "playing" || botGuessRef.current || !target) return;
+		if ((phaseRef.current !== "playing" && phaseRef.current !== "waiting_for_others") || botGuessRef.current || !target) return;
 
 		const guessLoc = calculateBotGuess(target, currentBot.minDist, currentBot.maxDist);
 		botGuessRef.current = guessLoc;
@@ -1332,6 +1332,7 @@ export default function Match({
 		totalScoreRef.current = 0;
 		opponentScoreRef.current = 0;
 		allScoresRef.current = {};
+		botGuessRef.current = null;
 
 		resetTelemetry();
 
@@ -1920,6 +1921,7 @@ export default function Match({
 			setLocationName("");
 			setOpponentRoundDone(false);
 			setShowHint(false);
+			botGuessRef.current = null;
 			isSubmittingRef.current = false;
 			setIsSubmitting(false);
 
@@ -2833,6 +2835,8 @@ export default function Match({
 						isHost={h2hIsHost}
 						activeParticipants={activeParticipants}
 						participantNames={participantNames}
+						virtualMessages={virtualMessages}
+						onSendVirtualMessage={handleSendVirtualMessage}
 					/>
 				)}
 			</div>
