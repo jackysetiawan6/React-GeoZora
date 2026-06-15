@@ -121,7 +121,7 @@ export default function VirtualChatPanel({
 		};
 	}, [isExpanded, isFloating]);
 
-	if (isCollapsible && !isExpanded) {
+	if (isFloating && !isExpanded) {
 		return (
 			<button
 				onClick={handleExpand}

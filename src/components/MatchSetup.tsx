@@ -177,7 +177,7 @@ function GameSettingsPanel({
 					}
 				</div>
 
-				{isCreator && (
+				{isCreator ? (
 					<div className="flex flex-col gap-3 mt-1 bg-[var(--color-app-panel)] border border-[var(--color-app-border-light)] p-4 rounded-xl">
 						<Toggle
 							label="No Moving"
@@ -200,7 +200,15 @@ function GameSettingsPanel({
 							onChange={setEnableTimeMultiplier}
 						/>
 					</div>
-				)}
+				) : (selectedMode === "classic" || selectedMode === "vsAI") ? (
+					<div className="flex flex-col gap-3 mt-1 bg-[var(--color-app-panel)] border border-[var(--color-app-border-light)] p-4 rounded-xl">
+						<Toggle
+							label="Time Multiplier"
+							checked={enableTimeMultiplier}
+							onChange={setEnableTimeMultiplier}
+						/>
+					</div>
+				) : null}
 
 				{selectedMode === "vsAI" && (
 					<div className="flex flex-col gap-2 mt-2">

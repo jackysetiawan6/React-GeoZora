@@ -34,6 +34,7 @@ export interface MatchRoom {
 	no_panning: boolean;
 	no_zooming: boolean;
 	enable_time_multiplier?: boolean;
+	is_public?: boolean;
 	selected_maps: MapRegion[];
 	targets: StreetViewTarget[];
 	status: "waiting" | "active" | "completed";
@@ -128,6 +129,7 @@ export async function fetchRoom(roomId: string): Promise<MatchRoom | null> {
 				JSON.parse(room.scores)
 			: 	room.scores || {},
 		enable_time_multiplier: room.enable_time_multiplier === true,
+		is_public: room.is_public !== false,
 	} as MatchRoom;
 }
 
@@ -145,6 +147,7 @@ export async function createRoom(
 	status: "active" | "waiting" | "completed" = "active",
 	mode: string = "headToHead",
 	enableTimeMultiplier: boolean = false,
+	isPublic: boolean = true,
 ): Promise<MatchRoom | null> {
 	const { data, error } = await supabase
 		.from("match_rooms")
@@ -165,6 +168,7 @@ export async function createRoom(
 			selected_maps: selectedMaps,
 			status: status,
 			mode: mode,
+			is_public: isPublic,
 		})
 		.select()
 		.single();
@@ -195,6 +199,7 @@ export async function createRoom(
 				JSON.parse(data.scores)
 			: 	data.scores || {},
 		enable_time_multiplier: data.enable_time_multiplier === true,
+		is_public: data.is_public !== false,
 	} as MatchRoom;
 }
 
@@ -247,6 +252,7 @@ export async function updateRoom(
 			| "ready_states"
 			| "participants"
 			| "targets"
+			| "is_public"
 		>
 	>,
 ): Promise<void> {

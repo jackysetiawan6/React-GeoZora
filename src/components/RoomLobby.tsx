@@ -107,6 +107,12 @@ export default function RoomLobby({
 	const [playerToKick, setPlayerToKick] = useState<{ id: string; name: string } | null>(null);
 	const [localIsReady, setLocalIsReady] = useState(isHost); // Host is ready by default
 	const [isSyncingReady, setIsSyncingReady] = useState(false); // Track ready status sync state
+	const [localIsPublic, setLocalIsPublic] = useState(room.is_public ?? true);
+
+	useEffect(() => {
+		setLocalIsPublic(room.is_public ?? true);
+	}, [room.is_public]);
+
 	const MAX_PLAYERS = 30;
 	const roomChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(
 		null,
@@ -706,6 +712,28 @@ export default function RoomLobby({
 											:	<Copy className="w-4 h-4" />}
 										</div>
 									</div>
+								</div>
+
+								<div className="flex items-center justify-between p-4 bg-[var(--color-app-bg)]/20 border border-[var(--color-app-border-light)] rounded-2xl">
+									<span className="text-xs font-bold text-[var(--color-app-text)] flex items-center gap-2">
+										{localIsPublic ? "🌍 Public Room" : "🔒 Private Room"}
+									</span>
+									{isHost && (
+										<Toggle
+											label=""
+											checked={localIsPublic}
+											onChange={async (val) => {
+												setLocalIsPublic(val);
+												await supabase.from("match_rooms").update({ is_public: val }).eq("id", room.id);
+												const updatedRoom = { ...room, is_public: val };
+												onRoomUpdate?.(updatedRoom);
+												const channel = roomChannelRef.current;
+												if (channel?.state === "joined") {
+													void channel.send({ type: "broadcast", event: "room_updated", payload: updatedRoom });
+												}
+											}}
+										/>
+									)}
 								</div>
 
 								<div className="flex flex-col items-center mt-2">

@@ -108,40 +108,7 @@ CREATE POLICY "Admins can delete feedbacks"
 GRANT SELECT, INSERT, UPDATE ON public.room_messages TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.feedbacks TO authenticated;
 
--- 6. Helper Functions
-
--- Function for system messages insertion
-CREATE OR REPLACE FUNCTION public.insert_system_message(
-  p_room_id text,
-  p_message text
-) RETURNS void AS $$
-BEGIN
-  INSERT INTO public.room_messages (
-    room_id, user_id, username, content, is_system, message_type
-  ) VALUES (
-    p_room_id, NULL, 'System', p_message, true, 'system'
-  );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-GRANT EXECUTE ON FUNCTION public.insert_system_message(text, text) TO authenticated;
-
--- Function to get active players count safely (anon or authenticated)
-CREATE OR REPLACE FUNCTION public.get_active_players_count()
-RETURNS integer AS $$
-DECLARE
-  v_count integer;
-BEGIN
-  SELECT count(*)::integer INTO v_count
-  FROM public.profiles
-  WHERE online_status = true
-    AND last_seen >= (now() - interval '15 minutes');
-  RETURN v_count;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-GRANT EXECUTE ON FUNCTION public.get_active_players_count() TO anon, authenticated;
-
+-- 6. Helper Functions (Extracted to 08_rpc_chat_and_feedback.sql)
 -- Enable Realtime for room_messages
 alter publication supabase_realtime add table public.room_messages;
 

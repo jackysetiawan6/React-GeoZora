@@ -386,6 +386,14 @@ export default function Header({
 					return;
 				}
 
+				// Check if room is private (new joiners blocked)
+				const isPrivate = room.is_public === false;
+				const isAlreadyParticipant = currentParticipants.includes(user.uid) || room.player1_id === user.uid;
+				if (isPrivate && !isAlreadyParticipant) {
+					toast.error("This room is private and not accepting new joiners.");
+					return;
+				}
+
 				const joined = await joinRoom(room.id, user.uid);
 				if (!joined) {
 					toast.error("Failed to join room.");

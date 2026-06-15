@@ -92,11 +92,33 @@ const BOT_CONFIGS = {
 			],
 			gameOverWin: [
 				"I won! I need to tell my mom!",
-				"GG! That was super fun!"
+				"GG! That was super fun!",
+				"Wait, did I actually win the whole game? No way!",
+				"My random pins worked! I should buy a lottery ticket today.",
+				"I did it! Wandering around blindly paid off!",
+				"Oh wow, I thought I was in Madagascar but I guess I was closer!",
+				"GG! You'll definitely beat me next time, I got so lucky.",
+				"Hooray! The backpack of destiny guided me to victory!"
 			],
 			gameOverLose: [
 				"GG! You're really good at this.",
-				"Next time I'll bring a map."
+				"Next time I'll bring a map.",
+				"Aww, you got so close every time. Teach me your ways!",
+				"I was using the sun to navigate but it was cloudy 😭",
+				"You're a geo wizard! I stood no chance.",
+				"My backpack was too heavy, that's why I lost... GG!",
+				"Well played! I got lost somewhere in the Pacific Ocean.",
+				"GG! I'm going to go study a globe now."
+			],
+			gameOverTie: [
+				"Wait, we actually tied?! That's amazing!",
+				"Wow, a draw! We should go explore together.",
+				"Double win! Or double lose? Either way, GG!",
+				"A tie! I think we both ended up in the same wrong country.",
+				"Look at that, equal points! We are geo buddies now.",
+				"We tied! I guess my guesses weren't that bad after all.",
+				"Perfect balance! GG, that was a close one.",
+				"A tie! Let's celebrate with some ice cream!"
 			]
 		}
 	},
@@ -131,11 +153,33 @@ const BOT_CONFIGS = {
 			],
 			gameOverWin: [
 				"GG! Wandering Will wins today!",
-				"Great match, thanks for playing!"
+				"Great match, thanks for playing!",
+				"The scenic route led me straight to victory!",
+				"I guess my wanderlust gave me a sixth sense for coordinates.",
+				"Yes! A successful trek across the globe.",
+				"Sometimes walking slow lets you see the small details. GG!",
+				"All who wander are not lost, and today I proved it!",
+				"That was a fantastic journey. Glad I came out on top, GG!"
 			],
 			gameOverLose: [
 				"GG! You walk faster than me.",
-				"Nice game. Time for another hike!"
+				"Nice game. Time for another hike!",
+				"You navigated those roads like a pro. Congrats!",
+				"I got distracted by the beautiful trees and lost track of the map.",
+				"Wow, you left me in the dust! Excellent guessing.",
+				"My boots are made for walking, not winning today. GG!",
+				"You really know your way around! Great win.",
+				"GG! I need to pack lighter next time."
+			],
+			gameOverTie: [
+				"A tie! We took different paths but ended up at the same destination.",
+				"A draw! Looks like we have the same hiking speed.",
+				"We tied! That was an incredible match.",
+				"No winner, no loser. Just two geographers enjoying the walk. GG!",
+				"Equal scores! We should team up for the next expedition.",
+				"A perfect tie! My compass and your intuition matched up.",
+				"A tie game! That was a really fun match.",
+				"Well, look at that. A draw! Let's do another trail."
 			]
 		}
 	},
@@ -170,11 +214,33 @@ const BOT_CONFIGS = {
 			],
 			gameOverWin: [
 				"GG! The compass never lies.",
-				"A successful expedition!"
+				"A successful expedition!",
+				"And that's how it's done. Next time try squinting at the signs 🗺️",
+				"My coordinates were perfectly aligned. Excellent game!",
+				"The winds of geography blew in my favor today.",
+				"A precise victory! My mapping tools worked flawlessly.",
+				"GG! It's all about checking the sun orientation and license plates.",
+				"Victory achieved! A true navigator always finds his way."
 			],
 			gameOverLose: [
 				"GG! You are a master navigator.",
-				"Excellent work, I learned a lot."
+				"Excellent work, I learned a lot.",
+				"You read the signs better than I did. Well deserved win!",
+				"My calibrations were slightly off this match. Outstanding job!",
+				"You had the wind at your back. Amazing guesses!",
+				"Defeated! You've got an incredible eye for detail, human.",
+				"GG! Your geographic knowledge is superior.",
+				"A tough loss for me. You navigated beautifully!"
+			],
+			gameOverTie: [
+				"A tie! Two master navigators sharing the podium.",
+				"A draw! Our compasses must be pointing to the exact same spot.",
+				"We tied! What an intensely close match, GG!",
+				"Equal points. The map could not separate us today.",
+				"A tie game. An excellent display of navigation from both sides!",
+				"We finished in a deadlock! That was highly competitive.",
+				"A tie! Let's recalibrate and go for a rematch.",
+				"Draw! It seems we both know this world inside out."
 			]
 		}
 	},
@@ -209,11 +275,33 @@ const BOT_CONFIGS = {
 			],
 			gameOverWin: [
 				"GG! Geography wins again.",
-				"A very stimulating match!"
+				"A very stimulating match!",
+				"My memory of road markings and telephone poles is unmatched.",
+				"Excellent game! My database of soil color was key.",
+				"A academic victory! Well played.",
+				"I managed to pinpoint the driving side and language patterns correctly. GG!",
+				"Victory! The regional characteristics were quite obvious.",
+				"GG! You played well, but my geological studies prevailed."
 			],
 			gameOverLose: [
 				"GG! Your geography is outstanding.",
-				"Incredible performance, congrats!"
+				"Incredible performance, congrats!",
+				"You recognized the specific bollards of Romania faster than me.",
+				"A well-deserved victory. Your geographic instinct is superior.",
+				"You out-geographed me! Magnificent play.",
+				"GG! I made a bad assumption on the tree types, but you were spot on.",
+				"Truly impressive. You have clearly studied your globes!",
+				"A defeat for science, but a great win for you. GG!"
+			],
+			gameOverTie: [
+				"A tie! We both have exceptional geographical knowledge.",
+				"A draw! A meeting of two great minds.",
+				"We tied! That was an incredibly intellectual battle.",
+				"A tie game! Neither of us could outsmart the other.",
+				"Equal points. Our deductive reasoning was perfectly matched.",
+				"We finished with a draw! That was a masterclass in geoguessing.",
+				"A tie! Let's do another match to see who has the higher IQ.",
+				"GG! A tie is a very satisfying result for this level of play."
 			]
 		}
 	},
@@ -248,11 +336,33 @@ const BOT_CONFIGS = {
 			],
 			gameOverWin: [
 				"HUMANITY HAS BEEN DEFEATED.",
-				"VICTORY ACHIEVED. GG."
+				"VICTORY ACHIEVED. GG.",
+				"MY NEURAL NETWORKS CALCULATED YOUR COORDINATES PERFECTLY.",
+				"YOUR GEOGRAPHIC ABILITIES WERE INSUFFICIENT. MACHINE SUPREMACY.",
+				"OPTIMAL PIN PLACEMENT COMPLETED. MATCH TERMINATED.",
+				"GG. SCANNING FOR NEW TARGETS. RESISTANCE IS FUTILE.",
+				"DECISION MATRIX RESOLVED: BOT VICTORY.",
+				"DATABASE RECONCILIATION COMPLETE. YOU LOST, HUMAN."
 			],
 			gameOverLose: [
 				"ERROR: BOT LOST. INCREDIBLE SKILL DETECTED.",
-				"GG. YOU ARE INDEED A GEO MASTER."
+				"GG. YOU ARE INDEED A GEO MASTER.",
+				"ANOMALY DETECTED: HUMAN ACCURACY EXCEEDS MACHINE BOUNDS.",
+				"GG. RE-CALIBRATING SYSTEM DATA. IMPRESSIVE GEOGRAPHIC RECOGNITION.",
+				"MY PIXEL ANALYSIS FAILED TO PREDICT YOUR ACCURACY. WELL PLAYED.",
+				"GEOGRAPHIC MODEL DEFEATED. CONGRATULATIONS, HUMAN.",
+				"SYSTEM ERROR 404: VICTORY NOT FOUND. YOU OUTPLAYED ME.",
+				"DIAGNOSTICS RUNNING... YOU ARE SUPERIOR IN THIS REGION. GG."
+			],
+			gameOverTie: [
+				"TIE DETECTED. COMPUTATIONAL EQUIVALENCE ESTABLISHED.",
+				"DRAW. HUMAN AND MACHINE ALGORITHMS ARE CONVERGENT.",
+				"A TIE. STATISTICALLY UNLIKELY OUTCOME DETECTED.",
+				"COGNITIVE ALIGNMENT COMPLETE: WE HAVE TIED. GG.",
+				"ERROR: TIE GAME. RE-BOOTING COMPETITIVE PROTOCOLS.",
+				"DRAW. ZERO DELTA IN SCORE. HIGHLY BALANCED MATCH.",
+				"TIE. EQUAL DATA PROCESSING EFFICIENCY OBSERVED.",
+				"GG. A PERFECT DRAW. LET US RUN ANOTHER SIMULATION."
 			]
 		}
 	}
@@ -263,6 +373,7 @@ type MatchProps = {
 	selectedMaps: MapRegion[];
 	customRounds: number;
 	customSeconds: number;
+	enableTimeMultiplier?: boolean;
 	onModeChange?: (mode: GameModeId) => void;
 	onBackToDashboard?: () => void;
 	onRoomReset?: () => void;
@@ -281,6 +392,7 @@ export default function Match({
 	selectedMaps,
 	customRounds,
 	customSeconds,
+	enableTimeMultiplier = false,
 	onModeChange,
 	onBackToDashboard,
 	onRoomReset,
@@ -344,7 +456,7 @@ export default function Match({
 		setVirtualMessages(prev => [...prev, userMsg]);
 
 		setTimeout(() => {
-			const replies = [
+			let replies = [
 				"Nice talking to you! Now focus on the map!",
 				"I'm scanning the clouds right now, talk later!",
 				"Did you know the sun orientation here tells us everything?",
@@ -352,6 +464,60 @@ export default function Match({
 				"Interesting. My sensors are currently analyzing this post.",
 				"Hmm... I think I've been here before.",
 			];
+
+			if (phaseRef.current === "finished") {
+				const p1Final = totalScoreRef.current;
+				const p2Final = opponentScoreRef.current;
+				if (p1Final > p2Final) {
+					replies = [
+						"GG! You completely outperformed my algorithms today.",
+						"An impressive victory, human. I need to calibrate my location database.",
+						"You got me! That was some top-tier guessing.",
+						"Victory is yours. Well played!",
+						"Perhaps my level configuration is set too low... Or you're just a genius!",
+						"Congrats! Those guesses were pinpoint accurate.",
+						"I compute a 100% chance of you being happy right now. GG!",
+						"A worthy opponent! Let's play again sometime."
+					];
+				} else if (p1Final < p2Final) {
+					replies = [
+						"A good effort, but geography is my home turf!",
+						"My database of Street View locations is supreme! GG.",
+						"Better luck next time! Try looking at the flora and license plates.",
+						"Victory for the machine! Feel free to request a rematch.",
+						"Calculating win probability... Ah, yes, 100%. GG!",
+						"I was navigating by minor road markings. Don't feel bad!",
+						"GG! That was a close one, but my neural networks prevailed.",
+						"Keep practicing, human! You're getting better."
+					];
+				} else {
+					replies = [
+						"A perfect draw! Our geographic intuition is perfectly synced.",
+						"We tied! Absolute parity. Incredible.",
+						"What are the odds? A tie! Let's break the tie with another round.",
+						"A tie! A very balanced match. GG!",
+						"A draw! Neither machine nor human could claim supremacy today.",
+						"Equal scores! You matched me guess for guess.",
+						"Wow, a tie! You're as good as my prediction model.",
+						"Draw. An statistically improbable but beautiful outcome. GG!"
+					];
+				}
+			} else {
+				replies = [
+					"Nice talking to you! Now focus on the map!",
+					"I'm scanning the clouds right now, talk later!",
+					"Did you know the sun orientation here tells us everything?",
+					"Focus, human! The clock is ticking!",
+					"Interesting. My sensors are currently analyzing this post.",
+					"Hmm... I think I've been here before.",
+					"I am analyzing the soil color. It points to East Africa... or maybe South America.",
+					"Those road lines look European. Be careful!",
+					"Let's see who gets closer this round!",
+					"Are you checking the phone codes on the billboards? Because I am!",
+					"No distractions! Pin it on the map!",
+					"No time to chat, the timer is running down!"
+				];
+			}
 			const randomReply = replies[Math.floor(Math.random() * replies.length)];
 			sendBotChatMessage(randomReply);
 		}, 1500);
@@ -477,7 +643,7 @@ export default function Match({
 
 		const dist = haversineKm(guessLoc, target);
 		const botSecsLeft = remainingSec;
-		const score = calculateScore(dist, botSecsLeft, roundSeconds, false);
+		const score = calculateScore(dist, botSecsLeft, roundSeconds, localRoom?.enable_time_multiplier === true);
 
 		setRoundSubmissions(prev => {
 			const next = { ...prev };
@@ -1442,7 +1608,7 @@ export default function Match({
 							no_moving: false,
 							no_panning: false,
 							no_zooming: false,
-							enable_time_multiplier: false,
+							enable_time_multiplier: enableTimeMultiplier,
 							selected_maps: stableSelectedMaps,
 							status: "playing",
 							current_round: 1,
@@ -1464,7 +1630,7 @@ export default function Match({
 							no_moving: false,
 							no_panning: false,
 							no_zooming: false,
-							enable_time_multiplier: false,
+							enable_time_multiplier: enableTimeMultiplier,
 							selected_maps: stableSelectedMaps,
 							status: "playing",
 							current_round: 1,
@@ -1553,6 +1719,7 @@ export default function Match({
 				setTarget(firstTarget);
 				setCurrentRoundIndex(1);
 				setRemainingSec(resolvedSeconds);
+				setCountdownVal(3);
 				setPhase("playing");
 				matchStartTimeRef.current = Date.now();
 
@@ -1962,7 +2129,6 @@ export default function Match({
 			setTarget(nextTarget);
 			setCurrentRoundIndex(roundNumber);
 			setRemainingSec(resolvedSeconds);
-			setCountdownVal(3);
 			setPhase("playing");
 
 			// Persist current round to DB for room matches so server/other clients can stay in sync
@@ -2076,7 +2242,11 @@ export default function Match({
 			const p1Final = totalScoreRef.current;
 			const p2Final = opponentScoreRef.current;
 			const wonMatch = p1Final > p2Final;
-			const quotes = wonMatch ? currentBot.quotes.gameOverLose : currentBot.quotes.gameOverWin;
+			const tiedMatch = p1Final === p2Final;
+			const quotes =
+				tiedMatch ? (currentBot.quotes as any).gameOverTie || ["A tie! Excellent match."]
+				: wonMatch ? currentBot.quotes.gameOverLose
+				: currentBot.quotes.gameOverWin;
 			const quote = quotes[Math.floor(Math.random() * quotes.length)];
 			setTimeout(() => {
 				sendBotChatMessage(quote);
@@ -2206,7 +2376,7 @@ export default function Match({
 			const clientDistanceKm = usedGuess ? haversineKm(usedGuess, target) : 20000;
 			const clientScore =
 				forcedTimeout || !usedGuess ? 0 : (
-					calculateScore(clientDistanceKm, remainingSec, roundSeconds, roomMode !== "classic" && localRoom?.enable_time_multiplier === true)
+					calculateScore(clientDistanceKm, remainingSec, roundSeconds, localRoom?.enable_time_multiplier === true)
 				);
 
 			let verifiedScore = clientScore;
@@ -2862,6 +3032,9 @@ export default function Match({
 					isHost={h2hIsHost}
 					isCreatorRoom={selectedMode === "creatorRoom"}
 					room={localRoom}
+					isVsAI={selectedMode === "vsAI"}
+					virtualMessages={virtualMessages}
+					onSendVirtualMessage={handleSendVirtualMessage}
 				/>
 			)}
 

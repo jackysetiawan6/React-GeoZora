@@ -5,6 +5,7 @@ import { formatDistance, type RoundResult } from '../../lib/MatchGame';
 import type { MapRegion } from '../../lib/MapRegions';
 import type { MatchRoom } from '../../lib/Matchmaking';
 import ChatPanel from './ChatPanel';
+import VirtualChatPanel from './VirtualChatPanel';
 
 type MatchFinishedOverlayProps = {
   displayName?: string | null;
@@ -34,6 +35,9 @@ type MatchFinishedOverlayProps = {
   isHost?: boolean;
   isCreatorRoom?: boolean;
   room?: MatchRoom | null;
+  isVsAI?: boolean;
+  virtualMessages?: any[];
+  onSendVirtualMessage?: (content: string) => void;
 };
 
 export default function MatchFinishedOverlay({
@@ -56,6 +60,9 @@ export default function MatchFinishedOverlay({
   isHost,
   isCreatorRoom,
   room,
+  isVsAI,
+  virtualMessages,
+  onSendVirtualMessage,
 }: MatchFinishedOverlayProps) {
   // Load avatars for participants so pins can show profile images
   const [profileMap, setProfileMap] = useState<Record<string, { avatarUrl: string | null; displayName: string | null }>>({});
@@ -351,6 +358,14 @@ export default function MatchFinishedOverlay({
         <ChatPanel
           room={room}
           isHost={isHost}
+          phase="finished"
+          variant="floating"
+        />
+      )}
+      {isVsAI && virtualMessages && onSendVirtualMessage && (
+        <VirtualChatPanel
+          messages={virtualMessages}
+          onSendMessage={onSendVirtualMessage}
           phase="finished"
           variant="floating"
         />

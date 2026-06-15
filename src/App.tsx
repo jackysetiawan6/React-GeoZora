@@ -403,6 +403,24 @@ export default function App() {
 				setCustomRounds(MODE_CONFIGS[mode]?.rounds || 8);
 				setCustomSeconds(MODE_CONFIGS[mode]?.seconds || 75);
 			}
+		} else if (mode === "classic" || mode === "vsAI") {
+			const saved = localStorage.getItem(`geozora_settings_${mode}`);
+			if (saved) {
+				try {
+					const parsed = JSON.parse(saved);
+					if (typeof parsed.enableTimeMultiplier === "boolean") {
+						setEnableTimeMultiplier(parsed.enableTimeMultiplier);
+					} else {
+						setEnableTimeMultiplier(false);
+					}
+				} catch (e) {
+					setEnableTimeMultiplier(false);
+				}
+			} else {
+				setEnableTimeMultiplier(false);
+			}
+		} else {
+			setEnableTimeMultiplier(false);
 		}
 		setActiveTab("Setup");
 	}, []);
@@ -487,6 +505,8 @@ export default function App() {
 		noMoving,
 		noPanning,
 		noZooming,
+		enableTimeMultiplier,
+		user,
 	]);
 
 	// ── Matchmaking found a match → enter Match ──
@@ -617,6 +637,15 @@ export default function App() {
 					if (typeof parsed.enableTimeMultiplier === "boolean") setEnableTimeMultiplier(parsed.enableTimeMultiplier);
 				} catch (e) {}
 			}
+
+			// Load initial classic settings since SelectedMode defaults to classic
+			const classicSaved = localStorage.getItem("geozora_settings_classic");
+			if (classicSaved) {
+				try {
+					const parsed = JSON.parse(classicSaved);
+					if (typeof parsed.enableTimeMultiplier === "boolean") setEnableTimeMultiplier(parsed.enableTimeMultiplier);
+				} catch (e) {}
+			}
 		} catch (err: any) {
 			console.error("Initialization error:", err);
 			setLoadingError(
@@ -634,9 +663,10 @@ export default function App() {
 		void initializeApp();
 	}, [initializeApp]);
 
-	// Save creator room settings to local storage when modified
+	// Save settings to local storage when modified
 	useEffect(() => {
-		if (!isLoading && selectedMode === "creatorRoom") {
+		if (isLoading) return;
+		if (selectedMode === "creatorRoom") {
 			try {
 				localStorage.setItem(
 					"geozora_creator_settings",
@@ -651,6 +681,19 @@ export default function App() {
 				);
 			} catch (e) {
 				console.warn("Failed to save creator settings to localStorage:", e);
+			}
+		}
+
+		if (selectedMode === "classic" || selectedMode === "vsAI") {
+			try {
+				localStorage.setItem(
+					`geozora_settings_${selectedMode}`,
+					JSON.stringify({
+						enableTimeMultiplier,
+					}),
+				);
+			} catch (e) {
+				console.warn(`Failed to save settings for ${selectedMode}:`, e);
 			}
 		}
 	}, [
@@ -1031,6 +1074,7 @@ export default function App() {
 							selectedMaps={selectedMaps}
 							customRounds={customRounds === "" ? 10 : customRounds}
 							customSeconds={customSeconds === "" ? 45 : customSeconds}
+							enableTimeMultiplier={enableTimeMultiplier}
 							botLevel={botLevel}
 							onModeChange={handleModeChangeFromMatch}
 							onBackToDashboard={handleBackToDashboard}

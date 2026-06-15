@@ -449,7 +449,7 @@ export default function ChatPanel({
 				ref={panelRef}
 				onClick={handleExpand}
 				className={cn(
-					"fixed z-[250] min-w-28 flex items-center gap-2 rounded-full bg-[var(--color-app-blue)] text-white px-4 py-3 border border-[var(--color-app-border-light)] hover:bg-blue-500 transition-all shadow-xl shadow-blue-500/10",
+					"toggle-chat-btn fixed z-[250] min-w-28 flex items-center gap-2 rounded-full bg-[var(--color-app-blue)] text-white px-4 py-3 border border-[var(--color-app-border-light)] hover:bg-blue-500 transition-all shadow-xl shadow-blue-500/10",
 					// Place chat bottom-right when match has finished; otherwise keep default left-side during play
 					isFinished ? "right-6 bottom-24" : "left-6 bottom-24",
 				)}
