@@ -295,6 +295,33 @@ BEGIN
       IF p_exp_gain != v_expected_exp THEN
         RAISE EXCEPTION 'EXP calculation mismatch for Classic Mode. Client: %, Expected: %', p_exp_gain, v_expected_exp;
       END IF;
+
+    ELSIF v_mode = 'vsAI' THEN
+      -- VS AI mode doesn't modify ELO
+      IF p_elo_change != 0 THEN
+        RAISE EXCEPTION 'ELO changes are not permitted in VS AI Mode.';
+      END IF;
+
+      v_user_score := COALESCE((v_scores->>p_user_id)::integer, 0);
+      v_opp_score := COALESCE(v_p2_score, 0);
+
+      IF v_user_score > v_opp_score THEN
+        v_actual_result := 'win';
+      ELSIF v_user_score < v_opp_score THEN
+        v_actual_result := 'loss';
+      ELSE
+        v_actual_result := 'draw';
+      END IF;
+
+      v_expected_exp := (CASE 
+        WHEN v_actual_result = 'win' THEN 100 
+        WHEN v_actual_result = 'draw' THEN 60 
+        ELSE 30 
+      END) + floor(v_user_score / 100);
+
+      IF p_exp_gain != v_expected_exp THEN
+        RAISE EXCEPTION 'EXP calculation mismatch for VS AI Mode. Client: %, Expected: %', p_exp_gain, v_expected_exp;
+      END IF;
     END IF;
 
   END IF;

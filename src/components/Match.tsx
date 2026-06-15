@@ -722,7 +722,10 @@ export default function Match({
 		const entries = (Object.entries(allScores) as Array<[string, number]>).map(
 			([uid, totalScore]) => {
 			const roundScore = currentRoundScores[uid]?.score ?? 0;
-			const isOffline = uid === "bot" ? false : !activeParticipants.has(uid);
+			const isOffline =
+				uid === "bot" ? false
+				: (roomMode === "vsAI" || roomMode === "classic") ? false
+				: !activeParticipants.has(uid);
 			return {
 				uid,
 				label:
@@ -1435,6 +1438,9 @@ export default function Match({
 					{
 						player1: expGain,
 					},
+					undefined,
+					backingRoomId || undefined,
+					result === "win" ? user.uid : result === "loss" ? "bot" : null,
 				);
 
 				if (backingRoomId) {
@@ -2132,7 +2138,7 @@ export default function Match({
 			setPhase("playing");
 
 			// Persist current round to DB for room matches so server/other clients can stay in sync
-			if (isRoomMatch && localRoom) {
+			if ((isRoomMatch || roomMode === "vsAI") && localRoom) {
 				try {
 					await updateRoom(localRoom.id, { current_round: roundNumber, status: "active" });
 				} catch (err) {

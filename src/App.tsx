@@ -403,8 +403,26 @@ export default function App() {
 				setCustomRounds(MODE_CONFIGS[mode]?.rounds || 8);
 				setCustomSeconds(MODE_CONFIGS[mode]?.seconds || 75);
 			}
-		} else if (mode === "classic" || mode === "vsAI") {
-			const saved = localStorage.getItem(`geozora_settings_${mode}`);
+		} else if (mode === "vsAI") {
+			setSelectedMaps(["world"]);
+			setWarningMessage("VS AI mode is locked to the World map.");
+			const saved = localStorage.getItem("geozora_settings_vsAI");
+			if (saved) {
+				try {
+					const parsed = JSON.parse(saved);
+					if (typeof parsed.enableTimeMultiplier === "boolean") {
+						setEnableTimeMultiplier(parsed.enableTimeMultiplier);
+					} else {
+						setEnableTimeMultiplier(false);
+					}
+				} catch (e) {
+					setEnableTimeMultiplier(false);
+				}
+			} else {
+				setEnableTimeMultiplier(false);
+			}
+		} else if (mode === "classic") {
+			const saved = localStorage.getItem("geozora_settings_classic");
 			if (saved) {
 				try {
 					const parsed = JSON.parse(saved);

@@ -420,8 +420,10 @@ export default function MatchSetup({
 								Select Map Region
 							</div>
 							<p className="text-xs text-[var(--color-app-text-muted)] mt-1">
-								{isH2H ?
+								{selectedMode === "headToHead" ?
 									"Head-to-head is locked to World map for competitive balance."
+								: selectedMode === "vsAI" ?
+									"VS AI mode is locked to World map."
 								:	`Choose World, or up to ${MAX_SELECTED_MAPS} specific countries.`
 								}
 							</p>
@@ -503,7 +505,7 @@ export default function MatchSetup({
 										(worldSelected && mapKey !== "world"));
 
 								const isLight = theme === "light";
-								const isDisabled = selectionDisabled || (isH2H && mapKey !== "world");
+								const isDisabled = selectionDisabled || ((selectedMode === "headToHead" || selectedMode === "vsAI") && mapKey !== "world");
 
 								const overlayClass = isLight
 									? active
@@ -556,14 +558,14 @@ export default function MatchSetup({
 										key={mapKey}
 										onClick={() => toggleMapSelection(mapKey)}
 										disabled={
-											selectionDisabled || (isH2H && mapKey !== "world")
+											selectionDisabled || ((selectedMode === "headToHead" || selectedMode === "vsAI") && mapKey !== "world")
 										}
 										className={cn(
 											"relative min-h-[132px] overflow-hidden flex flex-col items-center justify-center p-5 rounded-xl border-2 transition-all group outline-none",
 											active ?
 												"border-[var(--color-app-blue)] shadow-[0_0_18px_rgba(59,130,246,0.22)]"
 											:	"border-[var(--color-app-border-light)] hover:border-gray-500",
-											(selectionDisabled || (isH2H && mapKey !== "world")) &&
+											(selectionDisabled || ((selectedMode === "headToHead" || selectedMode === "vsAI") && mapKey !== "world")) &&
 												"opacity-45 cursor-not-allowed hover:border-[var(--color-app-border-light)]",
 										)}>
 										<div
@@ -607,7 +609,7 @@ export default function MatchSetup({
 												</div>
 											)}
 										</div>
-										{isH2H && mapKey !== "world" && (
+										{(selectedMode === "headToHead" || selectedMode === "vsAI") && mapKey !== "world" && (
 											<div className="absolute inset-0 bg-black/40 flex items-center justify-center z-30">
 												<Lock className="w-6 h-6 text-[var(--color-app-text-muted)]" />
 											</div>

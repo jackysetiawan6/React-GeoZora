@@ -184,9 +184,12 @@ BEGIN
       NEW.round_submissions := '{}'::jsonb;
     ELSE
       -- Discard manual client modifications to scores, player scores
-      NEW.scores := OLD.scores;
-      NEW.player1_score := OLD.player1_score;
-      NEW.player2_score := OLD.player2_score;
+      -- EXCEPT for vsAI mode where the local bot's score is submitted directly from the client.
+      IF OLD.mode != 'vsAI' THEN
+        NEW.scores := OLD.scores;
+        NEW.player1_score := OLD.player1_score;
+        NEW.player2_score := OLD.player2_score;
+      END IF;
       
       -- Only allow client to modify winner_id when completing the match
       IF NOT (NEW.status = 'completed' AND OLD.status != 'completed') THEN
@@ -195,7 +198,7 @@ BEGIN
       
       -- Client cannot directly set status to completed (must go through submit_match_guess RPC or have finished all rounds)
       IF NEW.status IS DISTINCT FROM OLD.status AND NEW.status = 'completed' THEN
-        IF OLD.mode = 'creatorRoom' OR OLD.mode = 'classic' OR OLD.current_round >= OLD.total_rounds THEN
+        IF OLD.mode = 'creatorRoom' OR OLD.mode = 'classic' OR OLD.mode = 'vsAI' OR OLD.current_round >= OLD.total_rounds THEN
           -- Allow setting status to completed
           NULL;
         ELSE
