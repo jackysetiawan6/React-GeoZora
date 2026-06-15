@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '../lib/utils';
 import type { MapRegion } from '../lib/MapRegions';
 import { getMapViewConfigForSelectedRegions } from '../lib/MapRegions';
@@ -234,6 +234,7 @@ export default function GuessMiniMap({
 }: Props) {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstance = useRef<any>(null);
+  const [map, setMap] = useState<any>(null);
   const guessMarker = useRef<any>(null);
   const targetMarker = useRef<any>(null);
   const routeLine = useRef<any>(null);
@@ -351,6 +352,7 @@ export default function GuessMiniMap({
     });
 
     mapInstance.current = map;
+    setMap(map);
 
     window.setTimeout(() => {
       if (!mapInstance.current || !window.google?.maps) return;
@@ -395,6 +397,7 @@ export default function GuessMiniMap({
       historyMarkers.current = [];
       historyPolylines.current = [];
       mapInstance.current = null;
+      setMap(null);
       if (smoothCameraCancelRef.current) {
         smoothCameraCancelRef.current();
         smoothCameraCancelRef.current = null;
@@ -450,7 +453,7 @@ export default function GuessMiniMap({
       mapInstance.current.setCenter(viewConfig.center);
       mapInstance.current.setZoom(viewConfig.zoom);
     }
-  }, [viewConfig]);
+  }, [viewConfig, map]);
 
   useEffect(() => {
     if (!mapInstance.current || !window.google?.maps) return;
@@ -534,7 +537,7 @@ export default function GuessMiniMap({
     }
     guessMarker.current.gmpDraggable = phase === 'playing' && !disabled && !submitting;
     guessMarker.current.position = safeGuess;
-  }, [guess, viewConfig, phase, disabled, submitting, userAvatar]);
+  }, [guess, viewConfig, phase, disabled, submitting, userAvatar, map]);
 
   useEffect(() => {
     if (!mapInstance.current || !window.google?.maps) return;
@@ -739,7 +742,7 @@ export default function GuessMiniMap({
         smoothCameraCancelRef.current = null;
       }
     };
-  }, [phase, target, guess, viewConfig, opponentResults]);
+  }, [phase, target, guess, viewConfig, opponentResults, map]);
 
   useEffect(() => {
     if (!mapInstance.current || !window.google?.maps) return;
@@ -861,7 +864,7 @@ export default function GuessMiniMap({
     return () => {
       if (timerId !== null) clearTimeout(timerId);
     };
-  }, [phase, allResults, opponentResults]);
+  }, [phase, allResults, opponentResults, map]);
 
   useEffect(() => {
     if (!mapInstance.current || !window.google?.maps) return;
@@ -882,7 +885,7 @@ export default function GuessMiniMap({
         mapInstance.current.setZoom(viewConfig.zoom);
       }
     }
-  }, [phase, guess, target, viewConfig]);
+  }, [phase, guess, target, viewConfig, map]);
 
   useEffect(() => {
     if (!mapInstance.current || !window.google?.maps) return;
@@ -891,7 +894,7 @@ export default function GuessMiniMap({
       window.google.maps.event.trigger(mapInstance.current, 'resize');
     }, 0);
     return () => clearTimeout(tid);
-  }, [isMapLoaded, phase, selectedRegions]);
+  }, [isMapLoaded, phase, selectedRegions, map]);
 
   return (
     <div className="w-full h-full min-h-[220px] rounded-xl overflow-hidden bg-slate-200 relative group">

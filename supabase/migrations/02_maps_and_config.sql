@@ -96,34 +96,35 @@ GRANT SELECT ON public.game_modes TO anon;
 
 INSERT INTO public.map_regions (id, name, flag, flag_image, background, categories, min_lat, max_lat, min_lng, max_lng, camera_zoom, camera_min_zoom, camera_max_zoom, sort_order, is_enabled)
 VALUES
-  ('argentina', 'Argentina', '🇦🇷', 'https://flagcdn.com/w640/ar.png', NULL, ARRAY['americas'], -55, -21, -73, -53, NULL, NULL, NULL, 22, true),
-  ('australia', 'Australia', '🇦🇺', 'https://flagcdn.com/w640/au.png', NULL, ARRAY['popular','oceania'], -44, -10, 113, 154, NULL, NULL, NULL, 24, true),
-  ('brazil', 'Brazil', '🇧🇷', 'https://flagcdn.com/w640/br.png', NULL, ARRAY['americas'], -34, 5.3, -74, -34, NULL, NULL, NULL, 21, true),
-  ('canada', 'Canada', '🇨🇦', 'https://flagcdn.com/w640/ca.png', NULL, ARRAY['americas'], 42, 70, -141, -52, NULL, NULL, NULL, 19, true),
-  ('chile', 'Chile', '🇨🇱', 'https://flagcdn.com/w640/cl.png', NULL, ARRAY['americas'], -56, -17, -76, -66, NULL, NULL, NULL, 23, true),
-  ('france', 'France', '🇫🇷', 'https://flagcdn.com/w640/fr.png', NULL, ARRAY['europe'], 41, 51.2, -5.2, 9.6, NULL, NULL, NULL, 13, true),
-  ('germany', 'Germany', '🇩🇪', 'https://flagcdn.com/w640/de.png', NULL, ARRAY['popular','europe'], 47.2, 55.1, 5.8, 15.1, NULL, NULL, NULL, 12, true),
-  ('india', 'India', '🇮🇳', 'https://flagcdn.com/w640/in.png', NULL, ARRAY['asia'], 8, 35, 68, 97, NULL, NULL, NULL, 10, true),
-  ('indonesia', 'Indonesia', '🇮🇩', 'https://flagcdn.com/w640/id.png', NULL, ARRAY['popular','asia'], -10, 6, 95, 141, 5, 4, 13, 1, true),
-  ('italy', 'Italy', '🇮🇹', 'https://flagcdn.com/w640/it.png', NULL, ARRAY['europe'], 36.5, 47.1, 6.6, 18.6, NULL, NULL, NULL, 14, true),
-  ('japan', 'Japan', '🇯🇵', 'https://flagcdn.com/w640/jp.png', NULL, ARRAY['popular','asia'], 30, 45, 130, 146, 5, 4, 13, 2, true),
-  ('malaysia', 'Malaysia', '🇲🇾', 'https://flagcdn.com/w640/my.png', NULL, ARRAY['asia'], 0.8, 7.4, 99.6, 119.3, 6, 5, 13, 5, true),
-  ('mexico', 'Mexico', '🇲🇽', 'https://flagcdn.com/w640/mx.png', NULL, ARRAY['americas'], 14, 32.8, -118, -86, NULL, NULL, NULL, 20, true),
-  ('netherlands', 'Netherlands', '🇳🇱', 'https://flagcdn.com/w640/nl.png', NULL, ARRAY['europe'], 50.7, 53.7, 3.3, 7.3, 7, 6, 14, 16, true),
-  ('newZealand', 'New Zealand', '🇳🇿', 'https://flagcdn.com/w640/nz.png', NULL, ARRAY['oceania'], -47.5, -34, 166, 179, 6, 5, 14, 25, true),
-  ('norway', 'Norway', '🇳🇴', 'https://flagcdn.com/w640/no.png', NULL, ARRAY['europe'], 58, 71.2, 4, 31, NULL, NULL, NULL, 18, true),
-  ('philippines', 'Philippines', '🇵🇭', 'https://flagcdn.com/w640/ph.png', NULL, ARRAY['asia'], 5, 19.5, 117, 127, NULL, NULL, NULL, 7, true),
-  ('singapore', 'Singapore', '🇸🇬', 'https://flagcdn.com/w640/sg.png', NULL, ARRAY['asia'], 1.18, 1.48, 103.6, 104.05, 11, 10, 16, 4, true),
-  ('southKorea', 'South Korea', '🇰🇷', 'https://flagcdn.com/w640/kr.png', NULL, ARRAY['asia'], 33, 38.7, 124.5, 131, NULL, NULL, NULL, 9, true),
-  ('spain', 'Spain', '🇪🇸', 'https://flagcdn.com/w640/es.png', NULL, ARRAY['europe'], 36, 43.8, -9.5, 3.3, NULL, NULL, NULL, 15, true),
-  ('sweden', 'Sweden', '🇸🇪', 'https://flagcdn.com/w640/se.png', NULL, ARRAY['europe'], 59.3293, 18.0686, 11, 24, NULL, NULL, NULL, 17, true),
-  ('thailand', 'Thailand', '🇹🇭', 'https://flagcdn.com/w640/th.png', NULL, ARRAY['asia'], 5.6, 20.5, 97.3, 105.7, NULL, NULL, NULL, 6, true),
-  ('unitedKingdom', 'United Kingdom', '🇬🇧', 'https://flagcdn.com/w640/gb.png', NULL, ARRAY['popular','europe'], 49.8, 58.8, -8.7, 1.9, 6, 5, 14, 11, true),
-  ('usa', 'United States', '🇺🇸', 'https://flagcdn.com/w640/us.png', NULL, ARRAY['popular','americas'], 25, 49, -125, -67, 4, 3, 13, 3, true),
-  ('vietnam', 'Vietnam', '🇻🇳', 'https://flagcdn.com/w640/vn.png', NULL, ARRAY['asia'], 8, 23.5, 102, 110, NULL, NULL, NULL, 8, true),
-  ('world', 'World', '🌍', NULL, 'radial-gradient(circle at 30% 30%, rgba(59,130,246,0.45), transparent 35%), radial-gradient(circle at 70% 60%, rgba(34,197,94,0.35), transparent 35%), linear-gradient(135deg, rgba(15,23,42,1), rgba(30,41,59,1))', ARRAY['popular'], -85, 85, -180, 180, 2, 2, 12, 0, true)
+  ('argentina', 'Argentina', '🇦🇷', 'https://flagcdn.com/w640/ar.png', NULL, ARRAY['americas'], -58.0, -19.0, -76.0, -50.0, NULL, NULL, NULL, 22, true),
+  ('australia', 'Australia', '🇦🇺', 'https://flagcdn.com/w640/au.png', NULL, ARRAY['popular','oceania'], -47.0, -7.0, 110.0, 157.0, NULL, NULL, NULL, 24, true),
+  ('brazil', 'Brazil', '🇧🇷', 'https://flagcdn.com/w640/br.png', NULL, ARRAY['americas'], -37.0, 8.0, -77.0, -31.0, NULL, NULL, NULL, 21, true),
+  ('canada', 'Canada', '🇨🇦', 'https://flagcdn.com/w640/ca.png', NULL, ARRAY['americas'], 40.0, 85.0, -145.0, -48.0, NULL, NULL, NULL, 19, true),
+  ('chile', 'Chile', '🇨🇱', 'https://flagcdn.com/w640/cl.png', NULL, ARRAY['americas'], -58.0, -15.0, -78.0, -64.0, NULL, NULL, NULL, 23, true),
+  ('france', 'France', '🇫🇷', 'https://flagcdn.com/w640/fr.png', NULL, ARRAY['europe'], 38.0, 53.0, -8.0, 12.0, NULL, NULL, NULL, 13, true),
+  ('germany', 'Germany', '🇩🇪', 'https://flagcdn.com/w640/de.png', NULL, ARRAY['popular','europe'], 45.5, 56.5, 4.0, 17.0, NULL, NULL, NULL, 12, true),
+  ('india', 'India', '🇮🇳', 'https://flagcdn.com/w640/in.png', NULL, ARRAY['asia'], 5.0, 40.0, 65.0, 100.0, NULL, NULL, NULL, 10, true),
+  ('indonesia', 'Indonesia', '🇮🇩', 'https://flagcdn.com/w640/id.png', NULL, ARRAY['popular','asia'], -14.0, 9.0, 92.0, 144.0, 5, 4, 13, 1, true),
+  ('italy', 'Italy', '🇮🇹', 'https://flagcdn.com/w640/it.png', NULL, ARRAY['europe'], 33.5, 49.0, 4.5, 21.0, NULL, NULL, NULL, 14, true),
+  ('japan', 'Japan', '🇯🇵', 'https://flagcdn.com/w640/jp.png', NULL, ARRAY['popular','asia'], 22.0, 47.5, 120.0, 148.5, 5, 4, 13, 2, true),
+  ('malaysia', 'Malaysia', '🇲🇾', 'https://flagcdn.com/w640/my.png', NULL, ARRAY['asia'], -1.5, 9.5, 97.0, 121.5, 6, 5, 13, 5, true),
+  ('mexico', 'Mexico', '🇲🇽', 'https://flagcdn.com/w640/mx.png', NULL, ARRAY['americas'], 12.0, 35.0, -121.0, -84.0, NULL, NULL, NULL, 20, true),
+  ('netherlands', 'Netherlands', '🇳🇱', 'https://flagcdn.com/w640/nl.png', NULL, ARRAY['europe'], 49.5, 54.8, 2.0, 8.5, 7, 6, 14, 16, true),
+  ('newZealand', 'New Zealand', '🇳🇿', 'https://flagcdn.com/w640/nz.png', NULL, ARRAY['oceania'], -49.5, -32.0, 163.0, 179.9, 6, 5, 14, 25, true),
+  ('norway', 'Norway', '🇳🇴', 'https://flagcdn.com/w640/no.png', NULL, ARRAY['europe'], 55.5, 73.5, 2.0, 34.0, NULL, NULL, NULL, 18, true),
+  ('philippines', 'Philippines', '🇵🇭', 'https://flagcdn.com/w640/ph.png', NULL, ARRAY['asia'], 2.5, 23.0, 114.5, 129.5, NULL, NULL, NULL, 7, true),
+  ('singapore', 'Singapore', '🇸🇬', 'https://flagcdn.com/w640/sg.png', NULL, ARRAY['asia'], 1.0, 1.6, 103.3, 104.4, 11, 10, 16, 4, true),
+  ('southKorea', 'South Korea', '🇰🇷', 'https://flagcdn.com/w640/kr.png', NULL, ARRAY['asia'], 31.0, 40.5, 122.0, 134.0, NULL, NULL, NULL, 9, true),
+  ('spain', 'Spain', '🇪🇸', 'https://flagcdn.com/w640/es.png', NULL, ARRAY['europe'], 25.0, 46.0, -20.0, 6.0, NULL, NULL, NULL, 15, true),
+  ('sweden', 'Sweden', '🇸🇪', 'https://flagcdn.com/w640/se.png', NULL, ARRAY['europe'], 53.0, 71.5, 8.5, 26.5, NULL, NULL, NULL, 17, true),
+  ('thailand', 'Thailand', '🇹🇭', 'https://flagcdn.com/w640/th.png', NULL, ARRAY['asia'], 3.5, 22.5, 95.0, 108.0, NULL, NULL, NULL, 6, true),
+  ('unitedKingdom', 'United Kingdom', '🇬🇧', 'https://flagcdn.com/w640/gb.png', NULL, ARRAY['popular','europe'], 48.0, 62.0, -11.0, 4.0, 6, 5, 14, 11, true),
+  ('usa', 'United States', '🇺🇸', 'https://flagcdn.com/w640/us.png', NULL, ARRAY['popular','americas'], 15.0, 75.0, -180.0, -60.0, 4, 3, 13, 3, true),
+  ('vietnam', 'Vietnam', '🇻🇳', 'https://flagcdn.com/w640/vn.png', NULL, ARRAY['asia'], 6.5, 25.5, 100.0, 112.0, NULL, NULL, NULL, 8, true),
+  ('world', 'World', '🌍', NULL, 'radial-gradient(circle at 30% 30%, rgba(59,130,246,0.45), transparent 35%), radial-gradient(circle at 70% 60%, rgba(34,197,94,0.35), transparent 35%), linear-gradient(135deg, rgba(15,23,42,1), rgba(30,41,59,1))', ARRAY['popular'], -85.0, 85.0, -180.0, 180.0, 2, 2, 12, 0, true)
 ON CONFLICT (id) DO NOTHING;
 
+-- argentina
 INSERT INTO public.map_fallback_locations (region_id, lat, lng, sort_order)
 VALUES
   ('argentina', -30.902288, -68.81282, 0),
@@ -222,7 +223,12 @@ VALUES
   ('argentina', -47.208294, -71.55764, 93),
   ('argentina', -29.704554, -68.490417, 94),
   ('argentina', -30.907196, -58.745312, 95),
-  ('argentina', -35.144238, -66.671425, 96),
+  ('argentina', -35.144238, -66.671425, 96)
+ON CONFLICT (id) DO NOTHING;
+
+-- australia
+INSERT INTO public.map_fallback_locations (region_id, lat, lng, sort_order)
+VALUES
   ('australia', -29.439728, 152.991165, 0),
   ('australia', -32.243656, 148.240982, 1),
   ('australia', -32.747665, 117.084053, 2),
@@ -319,7 +325,12 @@ VALUES
   ('australia', -30.294502, 115.044807, 93),
   ('australia', -34.755363, 149.715134, 94),
   ('australia', -31.989929, 117.138519, 95),
-  ('australia', -33.751091, 150.653854, 96),
+  ('australia', -33.751091, 150.653854, 96)
+ON CONFLICT (id) DO NOTHING;
+
+-- brazil
+INSERT INTO public.map_fallback_locations (region_id, lat, lng, sort_order)
+VALUES
   ('brazil', -9.614059, -42.431644, 0),
   ('brazil', -20.363502, -46.219563, 1),
   ('brazil', -26.514528, -53.304344, 2),
@@ -414,7 +425,12 @@ VALUES
   ('brazil', -5.312312, -49.29752, 91),
   ('brazil', -19.086828, -41.998138, 92),
   ('brazil', -2.046465, -45.962662, 93),
-  ('brazil', -14.458511, -48.410309, 94),
+  ('brazil', -14.458511, -48.410309, 94)
+ON CONFLICT (id) DO NOTHING;
+
+-- canada
+INSERT INTO public.map_fallback_locations (region_id, lat, lng, sort_order)
+VALUES
   ('canada', 69.10968, -105.110916, 0),
   ('canada', 52.059902, -101.037193, 1),
   ('canada', 45.331966, -60.982525, 2),
@@ -514,7 +530,12 @@ VALUES
   ('canada', 63.760071, -68.525574, 96),
   ('canada', 48.119465, -65.777664, 97),
   ('canada', 63.747692, -68.519287, 98),
-  ('canada', 52.569023, -112.35154, 99),
+  ('canada', 52.569023, -112.35154, 99)
+ON CONFLICT (id) DO NOTHING;
+
+-- chile
+INSERT INTO public.map_fallback_locations (region_id, lat, lng, sort_order)
+VALUES
   ('chile', -33.40007, -70.63269, 0),
   ('chile', -41.85284, -73.578506, 1),
   ('chile', -33.113342, -71.568695, 2),
@@ -607,7 +628,12 @@ VALUES
   ('chile', -45.495541, -72.223648, 89),
   ('chile', -22.291267, -69.100021, 90),
   ('chile', -36.43549, -72.370094, 91),
-  ('chile', -45.021679, -72.131416, 92),
+  ('chile', -45.021679, -72.131416, 92)
+ON CONFLICT (id) DO NOTHING;
+
+-- france
+INSERT INTO public.map_fallback_locations (region_id, lat, lng, sort_order)
+VALUES
   ('france', 45.475094, 5.762463, 0),
   ('france', 48.188503, 3.528154, 1),
   ('france', 43.706162, 3.284279, 2),
@@ -705,7 +731,12 @@ VALUES
   ('france', 44.038219, -1.242643, 94),
   ('france', 44.588604, 2.910246, 95),
   ('france', 45.717964, 4.892775, 96),
-  ('france', 50.191738, 3.076647, 97),
+  ('france', 50.191738, 3.076647, 97)
+ON CONFLICT (id) DO NOTHING;
+
+-- germany
+INSERT INTO public.map_fallback_locations (region_id, lat, lng, sort_order)
+VALUES
   ('germany', 51.220425, 6.837888, 0),
   ('germany', 51.463364, 7.301862, 1),
   ('germany', 51.198345, 6.770311, 2),
@@ -801,7 +832,12 @@ VALUES
   ('germany', 51.42543, 6.997853, 92),
   ('germany', 48.160656, 11.553806, 93),
   ('germany', 52.393311, 9.694366, 94),
-  ('germany', 52.498943, 9.358391, 95),
+  ('germany', 52.498943, 9.358391, 95)
+ON CONFLICT (id) DO NOTHING;
+
+-- indonesia
+INSERT INTO public.map_fallback_locations (region_id, lat, lng, sort_order)
+VALUES
   ('indonesia', 43.68977, 141.957504, 0),
   ('indonesia', -8.777976, 115.191223, 1),
   ('indonesia', -7.505052, 110.223824, 2),
@@ -894,7 +930,12 @@ VALUES
   ('indonesia', 1.046496, 103.912613, 90),
   ('indonesia', -8.414035, 115.26503, 91),
   ('indonesia', -8.826174, 115.220436, 92),
-  ('indonesia', -6.904903, 112.556915, 93),
+  ('indonesia', -6.904903, 112.556915, 93)
+ON CONFLICT (id) DO NOTHING;
+
+-- italy
+INSERT INTO public.map_fallback_locations (region_id, lat, lng, sort_order)
+VALUES
   ('italy', 45.327461, 8.853563, 0),
   ('italy', 45.37492, 11.912666, 1),
   ('italy', 43.503235, 11.187951, 2),
@@ -990,7 +1031,12 @@ VALUES
   ('italy', 45.527271, 8.578163, 92),
   ('italy', 44.395332, 7.194176, 93),
   ('italy', 42.337215, 12.01234, 94),
-  ('italy', 40.529861, 15.060014, 95),
+  ('italy', 40.529861, 15.060014, 95)
+ON CONFLICT (id) DO NOTHING;
+
+-- japan
+INSERT INTO public.map_fallback_locations (region_id, lat, lng, sort_order)
+VALUES
   ('japan', 33.417973, 132.985275, 0),
   ('japan', 44.524883, 142.796555, 1),
   ('japan', 45.258335, 141.743454, 2),
@@ -1090,7 +1136,12 @@ VALUES
   ('japan', 43.814098, 144.322067, 96),
   ('japan', 27.071484, 142.203827, 97),
   ('japan', 43.048901, 141.638336, 98),
-  ('japan', 33.421455, 132.701202, 99),
+  ('japan', 33.421455, 132.701202, 99)
+ON CONFLICT (id) DO NOTHING;
+
+-- malaysia
+INSERT INTO public.map_fallback_locations (region_id, lat, lng, sort_order)
+VALUES
   ('malaysia', 2.726458, 101.714745, 0),
   ('malaysia', 2.749116, 101.863907, 1),
   ('malaysia', 2.644116, 101.586441, 2),
@@ -1187,7 +1238,12 @@ VALUES
   ('malaysia', 2.646126, 101.756958, 93),
   ('malaysia', 1.545208, 103.578232, 94),
   ('malaysia', 1.548665, 104.032204, 95),
-  ('malaysia', 1.564011, 104.183678, 96),
+  ('malaysia', 1.564011, 104.183678, 96)
+ON CONFLICT (id) DO NOTHING;
+
+-- mexico
+INSERT INTO public.map_fallback_locations (region_id, lat, lng, sort_order)
+VALUES
   ('mexico', 20.177092, -98.840195, 0),
   ('mexico', 20.319538, -98.349388, 1),
   ('mexico', 20.26865, -100.067719, 2),
@@ -1287,7 +1343,12 @@ VALUES
   ('mexico', 20.061359, -100.036613, 96),
   ('mexico', 22.204428, -100.915482, 97),
   ('mexico', 19.855284, -90.510208, 98),
-  ('mexico', 21.024979, -87.120514, 99),
+  ('mexico', 21.024979, -87.120514, 99)
+ON CONFLICT (id) DO NOTHING;
+
+-- netherlands
+INSERT INTO public.map_fallback_locations (region_id, lat, lng, sort_order)
+VALUES
   ('netherlands', 51.837093, 5.877593, 0),
   ('netherlands', 52.079506, 5.102641, 1),
   ('netherlands', 53.307285, 6.953435, 2),
@@ -1384,7 +1445,12 @@ VALUES
   ('netherlands', 51.728031, 4.568613, 93),
   ('netherlands', 51.968681, 4.486232, 94),
   ('netherlands', 52.674671, 5.054201, 95),
-  ('netherlands', 52.245239, 5.959636, 96),
+  ('netherlands', 52.245239, 5.959636, 96)
+ON CONFLICT (id) DO NOTHING;
+
+-- newZealand
+INSERT INTO public.map_fallback_locations (region_id, lat, lng, sort_order)
+VALUES
   ('newZealand', -35.862106, 173.665955, 0),
   ('newZealand', -38.364838, 175.763916, 1),
   ('newZealand', -36.056656, 174.01059, 2),
@@ -1479,7 +1545,12 @@ VALUES
   ('newZealand', -38.989414, 174.401947, 91),
   ('newZealand', -40.97831, 175.540817, 92),
   ('newZealand', -46.415493, 169.06601, 93),
-  ('newZealand', -43.762585, 173.032379, 94),
+  ('newZealand', -43.762585, 173.032379, 94)
+ON CONFLICT (id) DO NOTHING;
+
+-- singapore
+INSERT INTO public.map_fallback_locations (region_id, lat, lng, sort_order)
+VALUES
   ('singapore', 1.263054, 103.813339, 0),
   ('singapore', 1.242835, 103.828262, 1),
   ('singapore', 1.333975, 103.949974, 2),
@@ -1576,7 +1647,12 @@ VALUES
   ('singapore', 1.335077, 103.706406, 93),
   ('singapore', 1.373884, 103.69503, 94),
   ('singapore', 1.459303, 103.841583, 95),
-  ('singapore', 1.388066, 103.772255, 96),
+  ('singapore', 1.388066, 103.772255, 96)
+ON CONFLICT (id) DO NOTHING;
+
+-- southKorea
+INSERT INTO public.map_fallback_locations (region_id, lat, lng, sort_order)
+VALUES
   ('southKorea', 37.268532, 127.108574, 0),
   ('southKorea', 37.386761, 126.99929, 1),
   ('southKorea', 37.55188, 126.974045, 2),
@@ -1672,7 +1748,12 @@ VALUES
   ('southKorea', 37.548809, 126.594566, 92),
   ('southKorea', 38.560318, 141.2603, 93),
   ('southKorea', 37.550873, 126.878059, 94),
-  ('southKorea', 35.342274, 129.160248, 95),
+  ('southKorea', 35.342274, 129.160248, 95)
+ON CONFLICT (id) DO NOTHING;
+
+-- spain
+INSERT INTO public.map_fallback_locations (region_id, lat, lng, sort_order)
+VALUES
   ('spain', 39.892712, -4.551355, 0),
   ('spain', 40.461349, -3.619391, 1),
   ('spain', 42.311108, -8.109697, 2),
@@ -1769,7 +1850,12 @@ VALUES
   ('spain', 28.090996, -15.584, 93),
   ('spain', 41.042076, -5.534326, 94),
   ('spain', 28.129551, -16.684376, 95),
-  ('spain', 39.630581, 2.42558, 96),
+  ('spain', 39.630581, 2.42558, 96)
+ON CONFLICT (id) DO NOTHING;
+
+-- sweden
+INSERT INTO public.map_fallback_locations (region_id, lat, lng, sort_order)
+VALUES
   ('sweden', 61.014168, 14.541423, 0),
   ('sweden', 58.179813, 13.834313, 1),
   ('sweden', 60.064079, 13.562562, 2),
@@ -1868,7 +1954,12 @@ VALUES
   ('sweden', 58.382877, 12.748453, 95),
   ('sweden', 56.904629, 16.113724, 96),
   ('sweden', 57.194305, 14.784786, 97),
-  ('sweden', 59.328072, 13.471602, 98),
+  ('sweden', 59.328072, 13.471602, 98)
+ON CONFLICT (id) DO NOTHING;
+
+-- thailand
+INSERT INTO public.map_fallback_locations (region_id, lat, lng, sort_order)
+VALUES
   ('thailand', 18.834755, 101.023865, 0),
   ('thailand', 16.246033, 102.718933, 1),
   ('thailand', 17.723619, 99.392761, 2),
@@ -1965,7 +2056,12 @@ VALUES
   ('thailand', 16.494141, 101.769272, 93),
   ('thailand', 17.218668, 104.644775, 94),
   ('thailand', 17.156504, 102.728661, 95),
-  ('thailand', 16.577127, 103.178238, 96),
+  ('thailand', 16.577127, 103.178238, 96)
+ON CONFLICT (id) DO NOTHING;
+
+-- unitedKingdom
+INSERT INTO public.map_fallback_locations (region_id, lat, lng, sort_order)
+VALUES
   ('unitedKingdom', 51.756569, -0.315606, 0),
   ('unitedKingdom', 55.691692, -4.86291, 1),
   ('unitedKingdom', 59.247631, -2.598731, 2),
@@ -2060,7 +2156,12 @@ VALUES
   ('unitedKingdom', 50.859688, -4.470277, 91),
   ('unitedKingdom', 54.125072, -5.938802, 92),
   ('unitedKingdom', 52.530972, -2.070761, 93),
-  ('unitedKingdom', 50.826923, -3.932605, 94),
+  ('unitedKingdom', 50.826923, -3.932605, 94)
+ON CONFLICT (id) DO NOTHING;
+
+-- usa
+INSERT INTO public.map_fallback_locations (region_id, lat, lng, sort_order)
+VALUES
   ('usa', 27.980585, -80.703362, 0),
   ('usa', 40.14027, -76.104897, 1),
   ('usa', 35.430264, -93.134666, 2),
@@ -2158,6 +2259,531 @@ VALUES
   ('usa', 39.057892, -90.673836, 94),
   ('usa', 40.552662, -80.245682, 95),
   ('usa', 39.950024, -82.019905, 96)
+ON CONFLICT (id) DO NOTHING;
+
+-- india
+INSERT INTO public.map_fallback_locations (region_id, lat, lng, sort_order)
+VALUES
+  ('india', 28.635308, 77.224960, 0),
+  ('india', 28.521820, 77.388840, 1),
+  ('india', 28.704060, 77.102490, 2),
+  ('india', 28.459820, 77.026350, 3),
+  ('india', 13.052414, 80.250825, 4),
+  ('india', 13.082680, 80.270360, 5),
+  ('india', 12.971599, 77.594563, 6),
+  ('india', 12.929600, 77.678200, 7),
+  ('india', 12.998600, 77.723900, 8),
+  ('india', 17.387140, 78.491684, 9),
+  ('india', 17.429500, 78.435000, 10),
+  ('india', 17.385200, 78.486600, 11),
+  ('india', 19.075984, 72.877656, 12),
+  ('india', 19.121400, 72.908200, 13),
+  ('india', 19.226900, 72.978400, 14),
+  ('india', 18.516726, 73.856255, 15),
+  ('india', 18.558600, 73.916100, 16),
+  ('india', 18.520400, 73.855500, 17),
+  ('india', 22.572646, 88.363895, 18),
+  ('india', 22.618600, 88.393100, 19),
+  ('india', 22.534200, 88.358400, 20),
+  ('india', 23.022505, 72.571362, 21),
+  ('india', 23.046100, 72.638700, 22),
+  ('india', 22.987300, 72.499600, 23),
+  ('india', 26.849600, 80.949200, 24),
+  ('india', 26.912900, 80.937400, 25),
+  ('india', 26.867200, 80.997900, 26),
+  ('india', 21.250000, 81.629640, 27),
+  ('india', 21.275200, 81.683400, 28),
+  ('india', 21.232700, 81.598600, 29),
+  ('india', 30.733315, 76.779418, 30),
+  ('india', 30.741200, 76.816900, 31),
+  ('india', 30.697800, 76.734000, 32),
+  ('india', 25.594095, 85.137566, 33),
+  ('india', 25.613200, 85.177200, 34),
+  ('india', 25.577800, 85.123100, 35),
+  ('india', 23.259933, 77.412615, 36),
+  ('india', 23.283900, 77.421700, 37),
+  ('india', 23.237200, 77.399100, 38),
+  ('india', 26.920900, 75.868500, 39),
+  ('india', 26.902100, 75.799900, 40),
+  ('india', 26.945700, 75.816700, 41),
+  ('india', 11.127123, 78.656891, 42),
+  ('india', 11.161700, 78.738400, 43),
+  ('india', 11.059900, 78.577200, 44),
+  ('india', 10.790600, 79.140500, 45),
+  ('india', 10.811700, 79.157400, 46),
+  ('india', 10.758200, 79.087200, 47),
+  ('india', 9.931233, 76.267304, 48),
+  ('india', 9.994600, 76.292400, 49),
+  ('india', 9.876100, 76.335700, 50),
+  ('india', 8.524139, 76.936638, 51),
+  ('india', 8.566500, 76.963700, 52),
+  ('india', 8.500800, 76.915300, 53),
+  ('india', 27.178700, 78.012500, 54),
+  ('india', 27.197100, 78.045300, 55),
+  ('india', 27.158900, 77.989600, 56),
+  ('india', 21.117400, 79.051900, 57),
+  ('india', 21.142300, 79.082600, 58),
+  ('india', 21.086600, 79.027200, 59),
+  ('india', 22.307159, 73.181218, 60),
+  ('india', 22.336700, 73.194100, 61),
+  ('india', 22.277200, 73.154200, 62),
+  ('india', 17.688100, 83.217900, 63),
+  ('india', 17.729300, 83.270900, 64),
+  ('india', 17.651800, 83.178600, 65),
+  ('india', 15.317277, 75.713890, 66),
+  ('india', 15.362100, 75.734100, 67),
+  ('india', 15.271600, 75.690800, 68),
+  ('india', 13.672600, 74.851200, 69),
+  ('india', 13.703700, 74.878400, 70),
+  ('india', 13.639200, 74.826900, 71),
+  ('india', 25.317644, 82.973915, 72),
+  ('india', 25.332700, 82.996300, 73),
+  ('india', 25.293400, 82.953400, 74),
+  ('india', 24.585445, 73.712479, 75),
+  ('india', 24.619300, 73.734600, 76),
+  ('india', 24.558700, 73.692100, 77),
+  ('india', 26.457200, 74.639900, 78),
+  ('india', 26.483700, 74.658900, 79),
+  ('india', 26.432800, 74.614300, 80),
+  ('india', 14.467400, 75.921100, 81),
+  ('india', 14.499600, 75.948300, 82),
+  ('india', 14.437300, 75.896200, 83),
+  ('india', 16.306300, 80.436500, 84),
+  ('india', 16.329400, 80.466700, 85),
+  ('india', 16.278200, 80.412800, 86),
+  ('india', 28.209600, 77.487400, 87),
+  ('india', 28.241700, 77.524800, 88),
+  ('india', 28.185300, 77.451200, 89),
+  ('india', 29.866900, 77.896800, 90),
+  ('india', 29.897400, 77.927600, 91),
+  ('india', 29.840200, 77.871400, 92),
+  ('india', 20.462700, 85.881600, 93),
+  ('india', 20.488300, 85.914900, 94),
+  ('india', 20.437600, 85.851300, 95),
+  ('india', 11.664400, 78.146100, 96),
+  ('india', 11.697700, 78.173600, 97),
+  ('india', 11.631800, 78.118200, 98),
+  ('india', 28.097200, 76.997100, 99)
+ON CONFLICT (id) DO NOTHING;
+
+-- norway
+INSERT INTO public.map_fallback_locations (region_id, lat, lng, sort_order)
+VALUES
+  ('norway', 59.913868, 10.752245, 0),
+  ('norway', 59.947300, 10.777100, 1),
+  ('norway', 59.891200, 10.679400, 2),
+  ('norway', 60.391263, 5.322054, 3),
+  ('norway', 60.424800, 5.348700, 4),
+  ('norway', 60.362200, 5.297100, 5),
+  ('norway', 63.430515, 10.395053, 6),
+  ('norway', 63.451200, 10.431700, 7),
+  ('norway', 63.407300, 10.364100, 8),
+  ('norway', 58.969975, 5.733107, 9),
+  ('norway', 58.997400, 5.777300, 10),
+  ('norway', 58.942800, 5.691200, 11),
+  ('norway', 69.649208, 18.955324, 12),
+  ('norway', 69.677300, 18.994100, 13),
+  ('norway', 69.624600, 18.912300, 14),
+  ('norway', 62.472228, 6.149482, 15),
+  ('norway', 62.501400, 6.178300, 16),
+  ('norway', 62.443700, 6.121600, 17),
+  ('norway', 58.148600, 7.996900, 18),
+  ('norway', 58.171300, 8.027400, 19),
+  ('norway', 58.123800, 7.968200, 20),
+  ('norway', 59.279300, 10.407600, 21),
+  ('norway', 59.308700, 10.438900, 22),
+  ('norway', 59.252100, 10.374100, 23),
+  ('norway', 60.794600, 11.067900, 24),
+  ('norway', 60.821300, 11.098700, 25),
+  ('norway', 60.767400, 11.038200, 26),
+  ('norway', 61.216900, 8.553100, 27),
+  ('norway', 61.241700, 8.584600, 28),
+  ('norway', 61.193400, 8.521300, 29),
+  ('norway', 68.438400, 17.428300, 30),
+  ('norway', 68.461700, 17.463800, 31),
+  ('norway', 68.415200, 17.392700, 32),
+  ('norway', 59.740800, 10.204900, 33),
+  ('norway', 59.768400, 10.239100, 34),
+  ('norway', 59.713900, 10.172400, 35),
+  ('norway', 60.869900, 8.003600, 36),
+  ('norway', 60.894300, 8.038700, 37),
+  ('norway', 60.845800, 7.969200, 38),
+  ('norway', 63.108200, 8.119600, 39),
+  ('norway', 63.132400, 8.153700, 40),
+  ('norway', 63.084100, 8.086300, 41),
+  ('norway', 70.663500, 23.679700, 42),
+  ('norway', 70.684300, 23.718400, 43),
+  ('norway', 70.641800, 23.641200, 44),
+  ('norway', 59.629600, 9.659700, 45),
+  ('norway', 59.657200, 9.694200, 46),
+  ('norway', 59.602100, 9.625300, 47),
+  ('norway', 62.729800, 7.490100, 48),
+  ('norway', 62.751600, 7.526400, 49),
+  ('norway', 62.707300, 7.453800, 50),
+  ('norway', 58.463700, 7.005400, 51),
+  ('norway', 58.489100, 7.041600, 52),
+  ('norway', 58.438400, 6.969800, 53),
+  ('norway', 60.488300, 8.726100, 54),
+  ('norway', 60.512700, 8.762400, 55),
+  ('norway', 60.464200, 8.690200, 56),
+  ('norway', 61.456700, 5.835400, 57),
+  ('norway', 61.481900, 5.872400, 58),
+  ('norway', 61.432600, 5.798600, 59),
+  ('norway', 65.867100, 13.068400, 60),
+  ('norway', 65.889700, 13.106800, 61),
+  ('norway', 65.844600, 13.030300, 62),
+  ('norway', 70.980500, 25.977900, 63),
+  ('norway', 70.999300, 26.016100, 64),
+  ('norway', 70.961700, 25.940600, 65),
+  ('norway', 59.440700, 6.373600, 66),
+  ('norway', 59.466200, 6.411300, 67),
+  ('norway', 59.415400, 6.336200, 68),
+  ('norway', 61.881400, 9.519200, 69),
+  ('norway', 61.906800, 9.558100, 70),
+  ('norway', 61.856100, 9.480700, 71),
+  ('norway', 67.286700, 14.383200, 72),
+  ('norway', 67.308300, 14.421900, 73),
+  ('norway', 67.265100, 14.344600, 74),
+  ('norway', 59.122400, 9.733600, 75),
+  ('norway', 59.148100, 9.769900, 76),
+  ('norway', 59.097200, 9.697600, 77),
+  ('norway', 63.682100, 9.672300, 78),
+  ('norway', 63.703800, 9.711200, 79),
+  ('norway', 63.660700, 9.633400, 80),
+  ('norway', 68.795200, 16.536400, 81),
+  ('norway', 68.817400, 16.574600, 82),
+  ('norway', 68.773100, 16.498200, 83),
+  ('norway', 60.128700, 11.386200, 84),
+  ('norway', 60.153800, 11.421400, 85),
+  ('norway', 60.104100, 11.351200, 86),
+  ('norway', 62.569200, 11.366300, 87),
+  ('norway', 62.591800, 11.403800, 88),
+  ('norway', 62.546700, 11.328900, 89),
+  ('norway', 59.367800, 8.228400, 90),
+  ('norway', 59.393200, 8.264700, 91),
+  ('norway', 59.342500, 8.192300, 92),
+  ('norway', 65.466200, 12.014700, 93),
+  ('norway', 65.488600, 12.053400, 94),
+  ('norway', 65.443800, 11.976100, 95),
+  ('norway', 64.474600, 12.213400, 96),
+  ('norway', 64.496400, 12.252100, 97),
+  ('norway', 64.452800, 12.175200, 98),
+  ('norway', 59.087400, 10.782300, 99)
+ON CONFLICT (id) DO NOTHING;
+
+-- philippines
+INSERT INTO public.map_fallback_locations (region_id, lat, lng, sort_order)
+VALUES
+  ('philippines', 14.599512, 120.984222, 0),
+  ('philippines', 14.627100, 121.013400, 1),
+  ('philippines', 14.573800, 120.956700, 2),
+  ('philippines', 10.315699, 123.885437, 3),
+  ('philippines', 10.341200, 123.912600, 4),
+  ('philippines', 10.289100, 123.858300, 5),
+  ('philippines', 7.190708, 125.455341, 6),
+  ('philippines', 7.217300, 125.484200, 7),
+  ('philippines', 7.164600, 125.427800, 8),
+  ('philippines', 16.408400, 120.596900, 9),
+  ('philippines', 16.433800, 120.627400, 10),
+  ('philippines', 16.382700, 120.566900, 11),
+  ('philippines', 8.228021, 124.243831, 12),
+  ('philippines', 8.254600, 124.273400, 13),
+  ('philippines', 8.201200, 124.214600, 14),
+  ('philippines', 14.440500, 120.932800, 15),
+  ('philippines', 14.466900, 120.959400, 16),
+  ('philippines', 14.414100, 120.906400, 17),
+  ('philippines', 10.716000, 122.562000, 18),
+  ('philippines', 10.741700, 122.591300, 19),
+  ('philippines', 10.690300, 122.532900, 20),
+  ('philippines', 7.065700, 125.608900, 21),
+  ('philippines', 7.091400, 125.638100, 22),
+  ('philippines', 7.040100, 125.579800, 23),
+  ('philippines', 15.178900, 120.588600, 24),
+  ('philippines', 15.204600, 120.618400, 25),
+  ('philippines', 15.153400, 120.558900, 26),
+  ('philippines', 14.841700, 120.812100, 27),
+  ('philippines', 14.867800, 120.842400, 28),
+  ('philippines', 14.815900, 120.782200, 29),
+  ('philippines', 9.759600, 118.733200, 30),
+  ('philippines', 9.784800, 118.762400, 31),
+  ('philippines', 9.734200, 118.704100, 32),
+  ('philippines', 8.948200, 125.529300, 33),
+  ('philippines', 8.973600, 125.558100, 34),
+  ('philippines', 8.922900, 125.500800, 35),
+  ('philippines', 14.377800, 121.039300, 36),
+  ('philippines', 14.403400, 121.067800, 37),
+  ('philippines', 14.352400, 121.011200, 38),
+  ('philippines', 13.941100, 121.163600, 39),
+  ('philippines', 13.966900, 121.193100, 40),
+  ('philippines', 13.915600, 121.134400, 41),
+  ('philippines', 11.244700, 124.997500, 42),
+  ('philippines', 11.269900, 125.027100, 43),
+  ('philippines', 11.219600, 124.967900, 44),
+  ('philippines', 6.910700, 122.073100, 45),
+  ('philippines', 6.935900, 122.103700, 46),
+  ('philippines', 6.885600, 122.042800, 47),
+  ('philippines', 9.297400, 123.305700, 48),
+  ('philippines', 9.323200, 123.335700, 49),
+  ('philippines', 9.271900, 123.276200, 50),
+  ('philippines', 13.415700, 121.972600, 51),
+  ('philippines', 13.440800, 122.002200, 52),
+  ('philippines', 13.390900, 121.943400, 53),
+  ('philippines', 18.198200, 120.581700, 54),
+  ('philippines', 18.222900, 120.611300, 55),
+  ('philippines', 18.173600, 120.552100, 56),
+  ('philippines', 12.368400, 121.895300, 57),
+  ('philippines', 12.393800, 121.924600, 58),
+  ('philippines', 12.343200, 121.866200, 59),
+  ('philippines', 16.924700, 121.777400, 60),
+  ('philippines', 16.949600, 121.807100, 61),
+  ('philippines', 16.899900, 121.747900, 62),
+  ('philippines', 10.662200, 122.958800, 63),
+  ('philippines', 10.687700, 122.988300, 64),
+  ('philippines', 10.636900, 122.929600, 65),
+  ('philippines', 8.503400, 124.651400, 66),
+  ('philippines', 8.528800, 124.681300, 67),
+  ('philippines', 8.478200, 124.621600, 68),
+  ('philippines', 14.082600, 122.958200, 69),
+  ('philippines', 14.108700, 122.987600, 70),
+  ('philippines', 14.056800, 122.929100, 71),
+  ('philippines', 7.524500, 122.031500, 72),
+  ('philippines', 7.549800, 122.061200, 73),
+  ('philippines', 7.499300, 122.001900, 74),
+  ('philippines', 13.138800, 123.740200, 75),
+  ('philippines', 13.164600, 123.769800, 76),
+  ('philippines', 13.113400, 123.710900, 77),
+  ('philippines', 10.302000, 124.030400, 78),
+  ('philippines', 10.327400, 124.059900, 79),
+  ('philippines', 10.276700, 124.001200, 80),
+  ('philippines', 17.607900, 120.387400, 81),
+  ('philippines', 17.632600, 120.417600, 82),
+  ('philippines', 17.583300, 120.357400, 83),
+  ('philippines', 14.167900, 121.243700, 84),
+  ('philippines', 14.193700, 121.273200, 85),
+  ('philippines', 14.142400, 121.214600, 86),
+  ('philippines', 11.578400, 122.133600, 87),
+  ('philippines', 11.603800, 122.163800, 88),
+  ('philippines', 11.553200, 122.103700, 89),
+  ('philippines', 9.043300, 125.591500, 90),
+  ('philippines', 9.069200, 125.621100, 91),
+  ('philippines', 9.017800, 125.562300, 92),
+  ('philippines', 6.754200, 124.822400, 93),
+  ('philippines', 6.779700, 124.852100, 94),
+  ('philippines', 6.728800, 124.793200, 95),
+  ('philippines', 13.621600, 123.182700, 96),
+  ('philippines', 13.647200, 123.212600, 97),
+  ('philippines', 13.596400, 123.153200, 98),
+  ('philippines', 14.733700, 121.049800, 99)
+ON CONFLICT (id) DO NOTHING;
+
+-- vietnam
+INSERT INTO public.map_fallback_locations (region_id, lat, lng, sort_order)
+VALUES
+  ('vietnam', 21.027764, 105.834160, 0),
+  ('vietnam', 21.054300, 105.861400, 1),
+  ('vietnam', 21.001500, 105.807200, 2),
+  ('vietnam', 10.823099, 106.629664, 3),
+  ('vietnam', 10.848600, 106.658200, 4),
+  ('vietnam', 10.797900, 106.601400, 5),
+  ('vietnam', 16.047079, 108.206230, 6),
+  ('vietnam', 16.072400, 108.235700, 7),
+  ('vietnam', 16.022100, 108.177400, 8),
+  ('vietnam', 10.045162, 105.746857, 9),
+  ('vietnam', 10.070700, 105.776600, 10),
+  ('vietnam', 10.020200, 105.717600, 11),
+  ('vietnam', 20.865500, 106.684300, 12),
+  ('vietnam', 20.891300, 106.713900, 13),
+  ('vietnam', 20.840100, 106.655200, 14),
+  ('vietnam', 20.153600, 106.342800, 15),
+  ('vietnam', 20.179200, 106.372300, 16),
+  ('vietnam', 20.128100, 106.313700, 17),
+  ('vietnam', 15.120419, 108.801870, 18),
+  ('vietnam', 15.145800, 108.831400, 19),
+  ('vietnam', 15.095300, 108.772900, 20),
+  ('vietnam', 12.238791, 109.196749, 21),
+  ('vietnam', 12.264400, 109.226100, 22),
+  ('vietnam', 12.213500, 109.168200, 23),
+  ('vietnam', 11.944600, 108.436100, 24),
+  ('vietnam', 11.969900, 108.465800, 25),
+  ('vietnam', 11.919400, 108.406900, 26),
+  ('vietnam', 10.966700, 108.117100, 27),
+  ('vietnam', 10.991900, 108.147400, 28),
+  ('vietnam', 10.941700, 108.087300, 29),
+  ('vietnam', 10.354200, 106.099800, 30),
+  ('vietnam', 10.379600, 106.129400, 31),
+  ('vietnam', 10.329200, 106.070600, 32),
+  ('vietnam', 10.564200, 107.181300, 33),
+  ('vietnam', 10.589800, 107.210600, 34),
+  ('vietnam', 10.538900, 107.152400, 35),
+  ('vietnam', 21.591600, 105.848100, 36),
+  ('vietnam', 21.617300, 105.877400, 37),
+  ('vietnam', 21.566300, 105.819200, 38),
+  ('vietnam', 22.332100, 103.843200, 39),
+  ('vietnam', 22.357900, 103.872600, 40),
+  ('vietnam', 22.306700, 103.814200, 41),
+  ('vietnam', 20.507600, 106.971400, 42),
+  ('vietnam', 20.533200, 107.001300, 43),
+  ('vietnam', 20.482300, 106.942200, 44),
+  ('vietnam', 14.058500, 108.277900, 45),
+  ('vietnam', 14.083900, 108.307400, 46),
+  ('vietnam', 14.033400, 108.249200, 47),
+  ('vietnam', 9.782600, 105.724600, 48),
+  ('vietnam', 9.808200, 105.754200, 49),
+  ('vietnam', 9.757300, 105.695600, 50),
+  ('vietnam', 17.466800, 106.594100, 51),
+  ('vietnam', 17.492400, 106.624300, 52),
+  ('vietnam', 17.441600, 106.564200, 53),
+  ('vietnam', 10.689300, 106.219200, 54),
+  ('vietnam', 10.714900, 106.249100, 55),
+  ('vietnam', 10.664100, 106.189900, 56),
+  ('vietnam', 21.832200, 106.762400, 57),
+  ('vietnam', 21.857900, 106.792600, 58),
+  ('vietnam', 21.806800, 106.732700, 59),
+  ('vietnam', 11.540700, 108.976200, 60),
+  ('vietnam', 11.566300, 109.005700, 61),
+  ('vietnam', 11.515400, 108.947100, 62),
+  ('vietnam', 13.783400, 109.216700, 63),
+  ('vietnam', 13.808900, 109.246100, 64),
+  ('vietnam', 13.758100, 109.187400, 65),
+  ('vietnam', 9.177600, 105.152300, 66),
+  ('vietnam', 9.203200, 105.181900, 67),
+  ('vietnam', 9.152300, 105.123100, 68),
+  ('vietnam', 16.463600, 107.594700, 69),
+  ('vietnam', 16.489100, 107.624300, 70),
+  ('vietnam', 16.438400, 107.565600, 71),
+  ('vietnam', 10.252300, 105.471800, 72),
+  ('vietnam', 10.277800, 105.501600, 73),
+  ('vietnam', 10.226900, 105.442400, 74),
+  ('vietnam', 20.421900, 106.178300, 75),
+  ('vietnam', 20.447600, 106.208200, 76),
+  ('vietnam', 20.396500, 106.149200, 77),
+  ('vietnam', 21.385400, 103.002100, 78),
+  ('vietnam', 21.411200, 103.031600, 79),
+  ('vietnam', 21.359900, 102.973200, 80),
+  ('vietnam', 19.802400, 105.788200, 81),
+  ('vietnam', 19.828100, 105.817700, 82),
+  ('vietnam', 19.777100, 105.759200, 83),
+  ('vietnam', 20.699500, 104.871300, 84),
+  ('vietnam', 20.725200, 104.900900, 85),
+  ('vietnam', 20.674100, 104.842200, 86),
+  ('vietnam', 11.336100, 107.097600, 87),
+  ('vietnam', 11.361800, 107.127200, 88),
+  ('vietnam', 11.310700, 107.068400, 89),
+  ('vietnam', 14.367600, 108.009200, 90),
+  ('vietnam', 14.393200, 108.039100, 91),
+  ('vietnam', 14.342400, 107.980200, 92),
+  ('vietnam', 22.665100, 106.257900, 93),
+  ('vietnam', 22.690800, 106.287400, 94),
+  ('vietnam', 22.639600, 106.228600, 95),
+  ('vietnam', 10.149600, 105.987300, 96),
+  ('vietnam', 10.175300, 106.017200, 97),
+  ('vietnam', 10.124200, 105.958100, 98),
+  ('vietnam', 21.278800, 105.734200, 99)
+ON CONFLICT (id) DO NOTHING;
+
+-- world
+INSERT INTO public.map_fallback_locations (region_id, lat, lng, sort_order)
+VALUES
+  ('world', 48.858844, 2.294351, 0),
+  ('world', 51.500729, -0.124625, 1),
+  ('world', 40.712776, -74.005974, 2),
+  ('world', 35.689487, 139.691706, 3),
+  ('world', -33.868820, 151.209296, 4),
+  ('world', 55.751244, 37.618423, 5),
+  ('world', -23.550520, -46.633309, 6),
+  ('world', 30.044420, 31.235712, 7),
+  ('world', 28.613939, 77.209023, 8),
+  ('world', 1.352083, 103.819836, 9),
+  ('world', 37.566535, 126.977969, 10),
+  ('world', 19.432608, -99.133208, 11),
+  ('world', -34.603684, -58.381559, 12),
+  ('world', 41.008238, 28.978359, 13),
+  ('world', 59.334591, 18.063240, 14),
+  ('world', 52.520008, 13.404954, 15),
+  ('world', 45.464664, 9.188540, 16),
+  ('world', 48.208176, 16.373819, 17),
+  ('world', 50.075538, 14.437800, 18),
+  ('world', 52.229676, 21.012229, 19),
+  ('world', 47.376887, 8.541694, 20),
+  ('world', 4.710989, -74.072092, 21),
+  ('world', -12.046374, -77.042793, 22),
+  ('world', -33.459229, -70.645348, 23),
+  ('world', 6.524379, 3.379206, 24),
+  ('world', -26.204103, 28.047305, 25),
+  ('world', 33.888630, 35.495479, 26),
+  ('world', -17.733251, -63.395328, 27),
+  ('world', 13.513366, 2.113728, 28),
+  ('world', 14.693425, -17.447938, 29),
+  ('world', -8.836959, 13.234444, 30),
+  ('world', 37.983810, 23.727539, 31),
+  ('world', 46.947922, 7.444608, 32),
+  ('world', 50.846557, 4.351697, 33),
+  ('world', 53.349805, -6.260310, 34),
+  ('world', 55.676098, 12.568337, 35),
+  ('world', 60.472024, 8.468946, 36),
+  ('world', 64.135338, -21.895210, 37),
+  ('world', 47.497913, 19.039223, 38),
+  ('world', 44.801485, 20.465601, 39),
+  ('world', 45.815399, 15.966568, 40),
+  ('world', 43.856430, 18.413029, 41),
+  ('world', 37.944444, 58.382358, 42),
+  ('world', 41.299496, 69.240073, 43),
+  ('world', 42.870000, 74.590000, 44),
+  ('world', 31.563400, 74.351700, 45),
+  ('world', 23.810332, 90.412521, 46),
+  ('world', 27.700769, 85.314819, 47),
+  ('world', 6.927079, 79.861244, 48),
+  ('world', 11.562112, 104.888535, 49),
+  ('world', -8.556856, 125.578766, 50),
+  ('world', -0.789275, 113.921327, 51),
+  ('world', 15.552727, 32.532233, 52),
+  ('world', -1.286389, 36.817223, 53),
+  ('world', -4.325000, 15.322000, 54),
+  ('world', 9.053661, 7.498384, 55),
+  ('world', 12.364637, -1.533486, 56),
+  ('world', 3.848034, 11.502075, 57),
+  ('world', -18.914996, 47.536216, 58),
+  ('world', -25.966213, 32.589893, 59),
+  ('world', -11.202692, 17.873887, 60),
+  ('world', 5.354400, -4.007800, 61),
+  ('world', -20.161530, 57.498480, 62),
+  ('world', -13.954600, -171.967700, 63),
+  ('world', 17.977200, -76.808800, 64),
+  ('world', 18.483402, -69.929611, 65),
+  ('world', 10.491316, -66.902060, 66),
+  ('world', 9.748917, -83.753428, 67),
+  ('world', 13.692940, -89.218191, 68),
+  ('world', 14.072275, -87.206906, 69),
+  ('world', 15.501680, -88.025760, 70),
+  ('world', 12.364566, -85.227088, 71),
+  ('world', 8.993541, -79.519756, 72),
+  ('world', 3.866667, 11.516667, 73),
+  ('world', -0.228021, -78.524898, 74),
+  ('world', -16.500000, -68.150000, 75),
+  ('world', -25.286900, -57.647000, 76),
+  ('world', -34.900000, -56.200000, 77),
+  ('world', 47.003670, 28.907089, 78),
+  ('world', 42.662914, 21.166019, 79),
+  ('world', 39.920000, 32.854000, 80),
+  ('world', 35.166668, 33.366669, 81),
+  ('world', 31.771959, 35.217018, 82),
+  ('world', 24.686460, 46.722069, 83),
+  ('world', 25.204849, 55.270783, 84),
+  ('world', 26.228516, 50.586090, 85),
+  ('world', 23.588050, 58.382816, 86),
+  ('world', 15.337807, 44.204403, 87),
+  ('world', 33.341940, 44.401427, 88),
+  ('world', 35.689400, 51.388975, 89),
+  ('world', 34.694008, 135.195694, 90),
+  ('world', 22.543096, 114.057865, 91),
+  ('world', 25.061820, 121.549792, 92),
+  ('world', 14.072400, 100.602400, 93),
+  ('world', 3.139003, 101.686855, 94),
+  ('world', 10.823099, 106.629664, 95),
+  ('world', 21.027764, 105.834160, 96),
+  ('world', 22.572646, 88.363895, 97),
+  ('world', -36.848461, 174.763336, 98),
+  ('world', -37.813629, 144.963058, 99)
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.game_modes (id, label, rounds, seconds, description, multiplayer, enabled, icon, bg_img, sort_order)

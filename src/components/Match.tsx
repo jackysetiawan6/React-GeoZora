@@ -2213,7 +2213,7 @@ export default function Match({
 			const roomUpdates: Record<string, any> = {
 				scores: finalScoresMap,
 				status: "completed",
-				winner_id: winnerId,
+				winner_id: (roomMode === "vsAI" && winnerId === "bot") ? null : winnerId,
 			};
 
 			if (roomMode !== "creatorRoom" && roomMode !== "classic" && roomMode !== "vsAI") {
@@ -2697,7 +2697,7 @@ export default function Match({
 		}, 1000);
 
 		return () => window.clearInterval(timer);
-	}, [phase, streetViewLoading]);
+	}, [phase, streetViewLoading, countdownVal]);
 
 	useEffect(() => {
 		if (phase === "playing" && remainingSec <= 0 && !isSubmittingRef.current) {
@@ -2706,7 +2706,7 @@ export default function Match({
 	}, [phase, remainingSec, submitGuess]);
 
 	useEffect(() => {
-		if (phase !== "playing" || !target || streetViewLoading) return;
+		if (phase !== "playing" || !target || streetViewLoading || countdownVal !== null) return;
 
 		setShowHint(true);
 
@@ -2720,7 +2720,7 @@ export default function Match({
 				hintTimerRef.current = null;
 			}
 		};
-	}, [currentRoundIndex, phase, streetViewLoading, target]);
+	}, [currentRoundIndex, phase, streetViewLoading, target, countdownVal]);
 
 	const handleModeSelect = (nextMode: GameModeId) => {
 		if (nextMode !== selectedMode) onModeChange?.(nextMode);

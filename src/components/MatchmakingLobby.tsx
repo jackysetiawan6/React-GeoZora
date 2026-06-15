@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, X, Swords, ArrowLeft } from 'lucide-react';
+import { Loader2, X, Swords, ArrowLeft, Info } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { cn } from '../lib/utils';
 import { useNetworkStatus } from '../lib/useNetworkStatus';
@@ -109,7 +109,7 @@ export default function MatchmakingLobby({
             const roundSeconds = getRoundSeconds('headToHead', 30);
             const initialTargetCount = Math.min(2, totalRounds);
             const initialTargets = await generateTargets(API_KEY, selectedMaps, initialTargetCount, "headToHead");
-            const room         = await createRoom(roomId, user.uid, opponentId, initialTargets, totalRounds, roundSeconds);
+            const room         = await createRoom(roomId, user.uid, opponentId, initialTargets, totalRounds, roundSeconds, false, false, false, selectedMaps, 'active', 'headToHead', true);
             if (!room) {
               setStatus('error');
               setErrorMsg('Failed to create room.');
@@ -287,6 +287,18 @@ export default function MatchmakingLobby({
                 </div>
               </div>
             )}
+
+            <div className="mb-6 text-left bg-[var(--color-app-bg)]/60 border border-[var(--color-app-border-light)] rounded-2xl p-4 text-xs">
+              <div className="font-bold text-[var(--color-app-text)] mb-2 flex items-center gap-1.5">
+                <Info className="w-4 h-4 text-[var(--color-app-blue)]" />
+                Head-to-Head Rules & Scoring
+              </div>
+              <ul className="list-disc pl-4 space-y-1.5 text-[var(--color-app-text-muted)] font-medium">
+                <li>Distance points: 5000 × e^(-distance / 1500) (up to 5,000 pts/rd).</li>
+                <li><strong>Time Multiplier is FORCED:</strong> Guessing faster gives a bonus! Your score is scaled from 1.0x (instant guess) down to 0.6x (last-second guess).</li>
+                <li>Highest total score after 10 rounds wins and gains ELO!</li>
+              </ul>
+            </div>
 
             {(status === 'searching' || status === 'found' || status === 'preparing') && (
               <button

@@ -123,11 +123,11 @@ function GameSettingsPanel({
 	const seconds = selectedMode === "headToHead" || selectedMode === "vsAI" ? 30 : 60;
 
 	const BOT_LEVELS = [
-		{ level: 1, name: "Lost Lucy", emoji: "🎒", desc: "Newbie (2000km+ off)" },
-		{ level: 2, name: "Wandering Will", emoji: "🥾", desc: "Easy (1000-2000km off)" },
-		{ level: 3, name: "Navigator Nick", emoji: "🧭", desc: "Medium (400-1000km off)" },
-		{ level: 4, name: "Geographer Grace", emoji: "🧠", desc: "Hard (100-400km off)" },
-		{ level: 5, name: "T-1000 GeoBot", emoji: "🤖", desc: "Expert (0-100km off)" },
+		{ level: 1, name: "Lost Lucy", emoji: "🎒", desc: "Newbie (Est. Win Rate: 5%)" },
+		{ level: 2, name: "Wandering Will", emoji: "🥾", desc: "Easy (Est. Win Rate: 25%)" },
+		{ level: 3, name: "Navigator Nick", emoji: "🧭", desc: "Medium (Est. Win Rate: 50%)" },
+		{ level: 4, name: "Geographer Grace", emoji: "🧠", desc: "Hard (Est. Win Rate: 75%)" },
+		{ level: 5, name: "T-1000 GeoBot", emoji: "🤖", desc: "Expert (Est. Win Rate: 95%)" },
 	];
 
 	return (

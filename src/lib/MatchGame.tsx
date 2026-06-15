@@ -407,6 +407,59 @@ export function calculateScore(
   return Math.max(0, Math.round(distanceScore * timeBonus));
 }
 
+const REGION_COUNTRY_CODES: Record<string, string> = {
+  argentina: 'AR',
+  australia: 'AU',
+  brazil: 'BR',
+  canada: 'CA',
+  chile: 'CL',
+  france: 'FR',
+  germany: 'DE',
+  india: 'IN',
+  indonesia: 'ID',
+  italy: 'IT',
+  japan: 'JP',
+  malaysia: 'MY',
+  mexico: 'MX',
+  netherlands: 'NL',
+  newZealand: 'NZ',
+  norway: 'NO',
+  philippines: 'PH',
+  singapore: 'SG',
+  southKorea: 'KR',
+  spain: 'ES',
+  sweden: 'SE',
+  thailand: 'TH',
+  unitedKingdom: 'GB',
+  usa: 'US',
+  vietnam: 'VN',
+};
+
+async function getCountryCodeForLatLng(
+  lat: number,
+  lng: number,
+  apiKey: string
+): Promise<string | null> {
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.status === 'OK' && data.results && data.results.length > 0) {
+      for (const result of data.results) {
+        for (const component of result.address_components) {
+          if (component.types.includes('country')) {
+            return component.short_name; // e.g. "US", "DE"
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Failed to geocode location:', err);
+  }
+  return null;
+}
+
 async function isValidStreetViewLocation(
   lat: number,
   lng: number,
@@ -474,11 +527,28 @@ export async function fetchRandomStreetViewTarget(
         const selectedMap = pickRandom(normalizedMaps);
         const location = getRandomLatLngForMap(selectedMap);
         try {
-          return await isValidStreetViewLocation(
+          const svData = await isValidStreetViewLocation(
             location.lat,
             location.lng,
             apiKey
           );
+          if (!svData) return null;
+
+          // If not world, check that geocoding country matches expected country code
+          if (selectedMap !== 'world') {
+            const expectedCountry = REGION_COUNTRY_CODES[selectedMap];
+            if (expectedCountry) {
+              const actualCountry = await getCountryCodeForLatLng(
+                svData.lat,
+                svData.lng,
+                apiKey
+              );
+              if (actualCountry !== expectedCountry) {
+                return null; // Reject neighboring country
+              }
+            }
+          }
+          return svData;
         } catch {
           return null;
         }

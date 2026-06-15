@@ -33,54 +33,15 @@ class AudioManager {
 	private settings: AudioSettings = { ...DEFAULT_SETTINGS };
 	private listeners: Set<Listener> = new Set();
 
-	// Music synthesis nodes
+	// Audio routing nodes
 	private musicGainNode: GainNode | null = null;
 	private sfxGainNode: GainNode | null = null;
-	private delayNode: DelayNode | null = null;
-	private delayFeedback: GainNode | null = null;
 
-	// Music sequencer state
+	// BGM Audio nodes
+	private bgmElement: HTMLAudioElement | null = null;
+	private bgmSource: MediaElementAudioSourceNode | null = null;
+
 	private isPlayingMusic = false;
-	private musicSchedulerId: any = null;
-	private nextStepTime = 0;
-	private currentStep = 0; // 0 to 31 (4 bars of 8th notes)
-
-	// Step Sequencer Config
-	private tempo = 125; // Beat per minute
-	private stepDuration = 60 / (125 * 2); // 8th note duration = 240ms
-
-	// Happy Melodic progression chiptune frequencies
-	private melodyNotes: Record<number, number> = {
-		// Bar 1 (C Major)
-		0: 523.25,  // C5
-		1: 659.25,  // E5
-		2: 783.99,  // G5
-		4: 659.25,  // E5
-		5: 783.99,  // G5
-		7: 1046.50, // C6
-		// Bar 2 (F Major)
-		8: 587.33,  // D5 (transition note)
-		9: 698.46,  // F5
-		10: 880.00, // A5
-		12: 698.46, // F5
-		13: 880.00, // A5
-		15: 1396.91,// F6
-		// Bar 3 (G Major)
-		16: 783.99, // G5
-		17: 987.77, // B5
-		18: 1174.66,// D6
-		20: 987.77, // B5
-		21: 1174.66,// D6
-		23: 1567.98,// G6
-		// Bar 4 (C Major - Resolve)
-		24: 1318.51,// E6
-		25: 1174.66,// D6
-		26: 1046.50,// C6
-		28: 783.99, // G5
-		29: 659.25, // E5
-		30: 523.25, // C5
-		31: 587.33, // D5
-	};
 
 	constructor() {
 		// Load settings from localStorage
@@ -117,19 +78,17 @@ class AudioManager {
 			this.musicGainNode = this.audioCtx.createGain();
 			this.sfxGainNode = this.audioCtx.createGain();
 
-			// Delay / Spatial FX chain for music
-			this.delayNode = this.audioCtx.createDelay(2.0);
-			this.delayFeedback = this.audioCtx.createGain();
+			// Create HTML5 Audio element for looping BGM
+			this.bgmElement = new Audio("/audio/bgm.mp3");
+			this.bgmElement.loop = true;
+			this.bgmElement.crossOrigin = "anonymous";
 
-			this.delayNode.delayTime.value = 0.36; // Echo matched to tempo
-			this.delayFeedback.gain.value = 0.35; // Cute bounce feedback
+			// Create media source and connect to music gain node
+			this.bgmSource = this.audioCtx.createMediaElementSource(this.bgmElement);
+			this.bgmSource.connect(this.musicGainNode);
 
-			// Wire up music nodes
+			// Wire up music nodes to destination
 			this.musicGainNode.connect(this.audioCtx.destination);
-			this.musicGainNode.connect(this.delayNode);
-			this.delayNode.connect(this.delayFeedback);
-			this.delayFeedback.connect(this.delayNode);
-			this.delayFeedback.connect(this.musicGainNode);
 
 			// Wire up SFX node directly
 			this.sfxGainNode.connect(this.audioCtx.destination);
@@ -181,137 +140,31 @@ class AudioManager {
 		const sVol = isMuted ? 0 : this.settings.sfxVolume;
 
 		if (this.musicGainNode && this.audioCtx) {
-			// Keep upbeat music balanced
-			this.musicGainNode.gain.setValueAtTime(mVol * 0.12, this.audioCtx.currentTime);
+			// Pre-recorded MP3 tracks can clip/be loud, we use a balanced gain scale
+			this.musicGainNode.gain.setValueAtTime(mVol * 0.22, this.audioCtx.currentTime);
 		}
 		if (this.sfxGainNode && this.audioCtx) {
 			this.sfxGainNode.gain.setValueAtTime(sVol * 0.38, this.audioCtx.currentTime);
 		}
 	}
 
-	// ─── RETRO UPBEAT STEP SEQUENCER (BGM) ──────────────────────
+	// ─── BACKGROUND MUSIC (BGM) PLAYER ──────────────────────────
 
 	public startMusic() {
 		if (this.isPlayingMusic) return;
 		void this.resume().then(() => {
-			if (!this.audioCtx) return;
+			if (!this.audioCtx || !this.bgmElement) return;
 			this.isPlayingMusic = true;
-			this.nextStepTime = this.audioCtx.currentTime + 0.1;
-			this.currentStep = 0;
-			this.scheduler();
+			this.bgmElement.play().catch(err => {
+				console.warn("BGM playback blocked or failed:", err);
+			});
 		});
 	}
 
 	public stopMusic() {
 		this.isPlayingMusic = false;
-		if (this.musicSchedulerId) {
-			clearTimeout(this.musicSchedulerId);
-			this.musicSchedulerId = null;
-		}
-	}
-
-	/**
-	 * Precise step scheduling loop.
-	 * Runs every 45ms and schedules notes for steps in the next 150ms.
-	 */
-	private scheduler = () => {
-		if (!this.isPlayingMusic || !this.audioCtx) return;
-
-		const currentTime = this.audioCtx.currentTime;
-		const lookAhead = 0.15;
-
-		while (this.nextStepTime < currentTime + lookAhead) {
-			this.scheduleStep(this.currentStep, this.nextStepTime);
-			this.nextStepTime += this.stepDuration;
-			this.currentStep = (this.currentStep + 1) % 32;
-		}
-
-		this.musicSchedulerId = setTimeout(this.scheduler, 45);
-	};
-
-	/**
-	 * Synthesizes chiptune instruments at the specified step time.
-	 */
-	private scheduleStep(step: number, time: number) {
-		if (!this.audioCtx || !this.musicGainNode) return;
-
-		// 1. Determine active chord root and fifth for bassline
-		let rootFreq = 130.81; // C3
-		let fifthFreq = 196.00; // G3
-		if (step >= 8 && step < 16) {
-			rootFreq = 174.61; // F3
-			fifthFreq = 261.63; // C4
-		} else if (step >= 16 && step < 24) {
-			rootFreq = 196.00; // G3
-			fifthFreq = 293.66; // D4
-		}
-
-		// Bass rhythm: plays root on steps 0, 2 and fifth on steps 4, 6
-		const barStep = step % 8;
-		const playBass = barStep === 0 || barStep === 2 || barStep === 4 || barStep === 6;
-		const bassFreq = (barStep === 0 || barStep === 2) ? rootFreq : fifthFreq;
-
-		if (playBass) {
-			// Bouncy chiptune synth bass (triangle/square mix with quick decay)
-			const osc = this.audioCtx.createOscillator();
-			const gain = this.audioCtx.createGain();
-			const filter = this.audioCtx.createBiquadFilter();
-
-			osc.type = "square";
-			osc.frequency.setValueAtTime(bassFreq, time);
-
-			filter.type = "lowpass";
-			filter.frequency.setValueAtTime(180, time);
-			filter.frequency.exponentialRampToValueAtTime(100, time + 0.12);
-
-			gain.gain.setValueAtTime(0.001, time);
-			gain.gain.linearRampToValueAtTime(0.7, time + 0.005);
-			gain.gain.exponentialRampToValueAtTime(0.001, time + 0.14);
-
-			osc.connect(filter);
-			filter.connect(gain);
-			gain.connect(this.musicGainNode);
-
-			osc.start(time);
-			osc.stop(time + 0.15);
-		}
-
-		// 2. Play upbeat staccato melody notes
-		const melodyFreq = this.melodyNotes[step];
-		if (melodyFreq) {
-			const osc = this.audioCtx.createOscillator();
-			const gain = this.audioCtx.createGain();
-
-			// Mix triangle (sweet, retro) with a tiny pulse-like square accent
-			osc.type = "triangle";
-			osc.frequency.setValueAtTime(melodyFreq, time);
-
-			gain.gain.setValueAtTime(0, time);
-			gain.gain.linearRampToValueAtTime(0.55, time + 0.005); // sharp attack
-			gain.gain.exponentialRampToValueAtTime(0.001, time + 0.11); // staccato release
-
-			osc.connect(gain);
-			gain.connect(this.musicGainNode);
-
-			osc.start(time);
-			osc.stop(time + 0.12);
-
-			// Add a subtle second oscillator detuned for arcade chorus thickness
-			const oscDetune = this.audioCtx.createOscillator();
-			const gainDetune = this.audioCtx.createGain();
-			oscDetune.type = "sine";
-			oscDetune.frequency.setValueAtTime(melodyFreq, time);
-			oscDetune.detune.setValueAtTime(9, time); // detune 9 cents
-
-			gainDetune.gain.setValueAtTime(0, time);
-			gainDetune.gain.linearRampToValueAtTime(0.2, time + 0.005);
-			gainDetune.gain.exponentialRampToValueAtTime(0.001, time + 0.09);
-
-			oscDetune.connect(gainDetune);
-			gainDetune.connect(this.musicGainNode);
-
-			oscDetune.start(time);
-			oscDetune.stop(time + 0.1);
+		if (this.bgmElement) {
+			this.bgmElement.pause();
 		}
 	}
 
