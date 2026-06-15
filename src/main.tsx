@@ -1,3 +1,7 @@
+import {initReactFiberProtection} from './lib/reactFiberProtect';
+// Initialize DOM protection against React Fiber scanning before React is imported/loaded
+initReactFiberProtection();
+
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';

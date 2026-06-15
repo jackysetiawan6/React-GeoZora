@@ -44,9 +44,36 @@ function backoffDelay(attempt: number): Promise<void> {
 }
 
 /**
+ * Extracts a clean, native fetch method from a dynamic sandboxed iframe.
+ * This prevents userscripts (like Tampermonkey) that hook global window.fetch
+ * from intercepting or modifying Supabase network payloads.
+ */
+function getCleanFetch(): typeof fetch {
+	if (typeof window === "undefined" || typeof document === "undefined") {
+		return fetch;
+	}
+	try {
+		const iframe = document.createElement("iframe");
+		iframe.style.display = "none";
+		document.documentElement.appendChild(iframe);
+		const cleanFetch = iframe.contentWindow?.fetch;
+		iframe.remove();
+		if (cleanFetch) {
+			return cleanFetch.bind(window);
+		}
+	} catch (e) {
+		console.debug("Failed to extract sandboxed fetch:", e);
+	}
+	return fetch;
+}
+
+const nativeFetch = getCleanFetch();
+
+/**
  * Fetch with exponential backoff retry logic
  * Handles transient network failures gracefully — applies backoff on
  * both 5xx HTTP errors AND network-level exceptions.
+ * Uses nativeFetch to bypass any external JS network hooking.
  */
 async function fetchWithRetry(
 	input: RequestInfo | URL,
@@ -57,7 +84,7 @@ async function fetchWithRetry(
 
 	for (let attempt = 0; attempt < maxRetries; attempt++) {
 		try {
-			const response = await fetch(input, init);
+			const response = await nativeFetch(input, init);
 
 			// Don't retry on 4xx errors (client errors)
 			if (response.status >= 400 && response.status < 500) {

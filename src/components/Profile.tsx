@@ -53,18 +53,30 @@ const BADGES: Badge[] = [
 ];
 
 export default function Profile() {
-  const { user, refreshUser, updateAvatar, updateSettings, signOut } = useAuth();
+  const { user, refreshUser, updateAvatar, updateSettings, signOut, linkGoogleAccount } = useAuth();
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [distanceMetric, setDistanceMetric] = useState(user?.distanceMetric || 'km');
   const [mapPreference, setMapPreference] = useState(user?.mapPreference || 'roadmap');
   const [stats, setStats] = useState<PlayerStats | null>(null);
   const [loading, setLoading] = useState(false);
+  const [linkLoading, setLinkLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [tempAvatar, setTempAvatar] = useState<string | null>(null);
   const [infoPopup, setInfoPopup] = useState<'elo' | 'rank' | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteText, setDeleteText] = useState('');
+
+  const handleLinkGoogle = async () => {
+    try {
+      setLinkLoading(true);
+      await linkGoogleAccount();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to link Google account.');
+    } finally {
+      setLinkLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -479,6 +491,36 @@ export default function Profile() {
                   )}
                 </div>
               </div>
+
+              {/* Save Progress Banner for Guests */}
+              {user.isAnonymous && (
+                <div className="flex flex-col gap-4 pt-2 border-t border-[var(--color-app-border-light)]/40 mt-4 animate-in fade-in duration-300">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-[var(--color-app-blue)] flex items-center gap-2">
+                    <span className="w-1 h-3 bg-[var(--color-app-blue)] rounded-full" />
+                    Save Your Progress
+                  </h3>
+                  <div className="bg-[var(--color-app-blue)]/5 border border-[var(--color-app-blue)]/20 rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                    <div className="space-y-1">
+                      <p className="text-sm font-bold text-[var(--color-app-text)]">Link Google Account</p>
+                      <p className="text-[11px] text-[var(--color-app-text-muted)] leading-relaxed max-w-xl">
+                        Convert your guest session into a permanent Google account. This secures your current ELO rating, level progression, achievements, and match history so you can log in from any device.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleLinkGoogle}
+                      disabled={linkLoading}
+                      className="flex-shrink-0 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest bg-[var(--color-app-blue)] hover:bg-blue-600 disabled:opacity-50 text-white shadow-lg transition-all transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      {linkLoading ? (
+                        <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Linking...</>
+                      ) : (
+                        <>Continue with Google</>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Danger Zone */}
               {!user.isAnonymous && (

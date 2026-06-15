@@ -2163,8 +2163,8 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO public.game_modes (id, label, rounds, seconds, description, multiplayer, enabled, icon, bg_img, sort_order)
 VALUES
   ('classic', 'Classic', 5, 60, '5 rounds, 60 seconds each. The core singleplayer experience.', false, true, 'MapPin', 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?q=80&w=600&auto=format&fit=crop', 1),
-  ('vsAI', 'VS AI', 5, 30, 'Test your skills against an AI opponent. Choose from 5 bot levels!', false, true, 'Cpu', 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=600&auto=format&fit=crop', 2)
+  ('vsAI', 'VS AI', 5, 30, 'Test your skills against an AI opponent. Choose from 5 bot levels!', false, true, 'Cpu', 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=600&auto=format&fit=crop', 2),
   ('headToHead', 'Head-to-head', 10, 30, '1v1 battle over 10 fast rounds (30s). Find a random opponent.', true, true, 'Map', 'https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=600&auto=format&fit=crop', 3),
   ('creatorRoom', 'Creator Room', 20, 45, 'Flexible rules for private matches with friends.', true, true, 'Crosshair', 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=600&auto=format&fit=crop', 4),
-  ('chaos', 'Chaos Mode', 0, 0, 'Same geography core, but with random effects & power-ups. Coming soon.', true, false, 'Zap', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=600&auto=format&fit=crop', 5),
+  ('chaos', 'Chaos Mode', 0, 0, 'Same geography core, but with random effects & power-ups. Coming soon.', true, false, 'Zap', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=600&auto=format&fit=crop', 5)
 ON CONFLICT (id) DO NOTHING;

@@ -18,6 +18,8 @@ export function isBypassOrigin(): boolean {
 	return hn === "localhost" || hn === "127.0.0.1" || hn.startsWith("192.168.");
 }
 
+let isDevToolsDetected = false;
+
 /**
  * Hook to track client telemetry statistics during gameplay.
  * Tracks panning, zooming, window blurs, and round durations.
@@ -57,6 +59,7 @@ export function useAntiCheatTelemetry() {
 			: 0;
 
 		const devtools_open = isBypassOrigin() ? false : (
+			isDevToolsDetected ||
 			window.outerWidth - window.innerWidth > 350 ||
 			window.outerHeight - window.innerHeight > 350
 		);
@@ -112,6 +115,7 @@ export function initAntiCheat(onChange: (detected: boolean) => void): () => void
 	let devToolsOpen = false;
 
 	const setStatus = (open: boolean) => {
+		isDevToolsDetected = open;
 		if (devToolsOpen !== open) {
 			devToolsOpen = open;
 			onChange(open);
@@ -139,7 +143,7 @@ export function initAntiCheat(onChange: (detected: boolean) => void): () => void
 		}
 	}, 1000);
 
-	// 3. Getter-based Console Object Check
+	// 3. Getter-based Console Object Check (Multi-vector)
 	const element = new Image();
 	Object.defineProperty(element, "id", {
 		get: () => {
@@ -148,8 +152,22 @@ export function initAntiCheat(onChange: (detected: boolean) => void): () => void
 		},
 	});
 
+	const regex = /./;
+	regex.toString = function () {
+		setStatus(true);
+		return "regex-trap";
+	};
+
+	const func = function () {};
+	func.toString = function () {
+		setStatus(true);
+		return "function-trap";
+	};
+
 	const consoleTimer = setInterval(() => {
 		console.log(element);
+		console.log(regex);
+		console.log(func);
 		console.clear();
 	}, 2000);
 

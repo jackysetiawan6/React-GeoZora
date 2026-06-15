@@ -172,23 +172,47 @@ GRANT UPDATE (
 
 -- 7. Helper Functions & Triggers
 
--- Function to sync profile and handle unique guest name generation
+DROP FUNCTION IF EXISTS public.sync_profile(uuid, text, text);
 CREATE OR REPLACE FUNCTION public.sync_profile(
   p_user_id uuid,
   p_email text DEFAULT NULL,
-  p_display_name text DEFAULT NULL
+  p_display_name text DEFAULT NULL,
+  p_avatar_url text DEFAULT NULL
 )
 RETURNS jsonb AS $$
 DECLARE
   v_name text;
+  v_email text;
+  v_avatar text;
   v_exists boolean;
   v_count integer := 0;
   v_res jsonb;
 BEGIN
   -- Check if profile already exists
-  SELECT display_name INTO v_name FROM public.profiles WHERE id = p_user_id::text;
+  SELECT display_name, email, avatar_url INTO v_name, v_email, v_avatar 
+  FROM public.profiles 
+  WHERE id = p_user_id::text;
   
   IF v_name IS NOT NULL THEN
+    -- DETECT TRANSITION: Guest converting to Google/Linked account
+    IF v_email IS NULL AND p_email IS NOT NULL THEN
+      UPDATE public.profiles
+      SET email = p_email,
+          -- Replace Guest display name with real Google display name
+          display_name = CASE 
+            WHEN (display_name LIKE 'Guest #%' OR display_name = 'Guest' OR display_name = '') AND p_display_name IS NOT NULL THEN p_display_name 
+            ELSE display_name 
+          END,
+          -- Replace empty or generic avatar with Google avatar
+          avatar_url = COALESCE(avatar_url, p_avatar_url),
+          last_seen = now(),
+          updated_at = now()
+      WHERE id = p_user_id::text
+      RETURNING jsonb_build_object('display_name', display_name) INTO v_res;
+      
+      RETURN v_res;
+    END IF;
+
     -- Normalize legacy guest names so anonymous users do not stay stuck on plain "Guest"
     IF p_email IS NULL AND (v_name = 'Guest' OR v_name = '' OR v_name IS NULL) THEN
       LOOP
@@ -238,14 +262,15 @@ BEGIN
     END LOOP;
   END IF;
 
-  INSERT INTO public.profiles (id, email, display_name, updated_at, last_seen)
-  VALUES (p_user_id::text, p_email, COALESCE(v_name, 'New User'), now(), now())
+  INSERT INTO public.profiles (id, email, display_name, avatar_url, updated_at, last_seen)
+  VALUES (p_user_id::text, p_email, COALESCE(v_name, 'New User'), p_avatar_url, now(), now())
   ON CONFLICT (id) DO UPDATE SET
     email = EXCLUDED.email,
     display_name = CASE 
       WHEN p_email IS NOT NULL THEN EXCLUDED.display_name 
       ELSE profiles.display_name 
     END,
+    avatar_url = COALESCE(profiles.avatar_url, EXCLUDED.avatar_url),
     updated_at = now(),
     last_seen = now()
   RETURNING jsonb_build_object('display_name', display_name) INTO v_res;
@@ -254,7 +279,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-GRANT EXECUTE ON FUNCTION public.sync_profile(uuid, text, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.sync_profile(uuid, text, text, text) TO authenticated;
 
 -- Function for a guest to delete their own profile
 CREATE OR REPLACE FUNCTION public.delete_guest_profile(p_user_id text)

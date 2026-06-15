@@ -32,6 +32,7 @@ interface AuthContextType {
 	loading: boolean;
 	signInAsGuest: () => Promise<void>;
 	signOut: () => Promise<void>;
+	linkGoogleAccount: () => Promise<void>;
 	logActivity: (action: string, details?: any) => Promise<void>;
 	refreshUser: () => Promise<void>;
 	updateAvatar: (url: string | null) => Promise<void>;
@@ -49,6 +50,7 @@ const AuthContext = createContext<AuthContextType>({
 	loading: true,
 	signInAsGuest: async () => {},
 	signOut: async () => {},
+	linkGoogleAccount: async () => {},
 	logActivity: async () => {},
 	refreshUser: async () => {},
 	updateAvatar: async () => {},
@@ -265,6 +267,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 						p_user_id: supaUser.id,
 						p_email: supaUser.email || null,
 						p_display_name: isAnon ? null : userObj.displayName,
+						p_avatar_url: isAnon ? null : userObj.photoURL,
 					});
 
 					if (syncError) {
@@ -535,6 +538,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		}
 	};
 
+	const linkGoogleAccount = async () => {
+		try {
+			setAuthOperation("signing-in");
+			const redirectTo = window.location.origin.endsWith('/') 
+				? window.location.origin 
+				: `${window.location.origin}/`;
+			
+			const { error } = await supabase.auth.linkIdentity({
+				provider: 'google',
+				options: {
+					redirectTo,
+				}
+			});
+			if (error) throw error;
+		} catch (err: any) {
+			console.error("Linking Google account failed:", err);
+			setAuthOperation(null);
+			toast.error(err.message || "Failed to link Google account.");
+			throw err;
+		}
+	};
+
 	const signOutUser = async () => {
 		if (user) {
 			setAuthOperation("signing-out");
@@ -576,6 +601,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				loading,
 				signInAsGuest,
 				signOut: signOutUser,
+				linkGoogleAccount,
 				logActivity,
 				refreshUser,
 				updateAvatar,
