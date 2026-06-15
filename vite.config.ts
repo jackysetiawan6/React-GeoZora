@@ -28,11 +28,7 @@ export default defineConfig(({mode}) => {
           drop_console: true,
           dead_code: true,
         },
-        mangle: {
-          properties: {
-            regex: /^_/,
-          },
-        },
+        mangle: true,
       },
     },
   };
