@@ -143,6 +143,8 @@ DECLARE
   v_ready_states jsonb;
   v_player1_id text;
   v_player2_id text;
+  v_new_host_id text;
+  v_new_host_name text;
 BEGIN
   IF public.is_current_user_banned() THEN
     RAISE EXCEPTION 'User is banned';
@@ -159,23 +161,64 @@ BEGIN
     RETURN false;
   END IF;
 
-  -- If user is the host (player1), we should close the room entirely
-  IF v_player1_id = p_user_id THEN
+  -- If user is not in participants, nothing to do
+  IF NOT (v_participants ? p_user_id) THEN
+    RETURN true;
+  END IF;
+
+  -- Remove user from participants and ready_states
+  v_participants := v_participants - p_user_id;
+  IF v_ready_states IS NOT NULL THEN
+    v_ready_states := v_ready_states - p_user_id;
+  END IF;
+
+  -- If no participants left, delete the room
+  IF jsonb_array_length(v_participants) = 0 THEN
     DELETE FROM public.match_rooms WHERE id = p_room_id;
     RETURN true;
   END IF;
 
-  -- Otherwise, remove player from participants and ready_states
-  IF v_participants ? p_user_id THEN
-    v_participants := v_participants - p_user_id;
+  -- If the leaving user was the host (player1_id)
+  IF v_player1_id = p_user_id THEN
+    -- Promote the first remaining participant to host
+    v_new_host_id := v_participants ->> 0;
     
-    IF v_ready_states IS NOT NULL THEN
-      v_ready_states := v_ready_states - p_user_id;
-    END IF;
+    -- Find new player2_id (first remaining participant who is not the new host)
+    SELECT value INTO v_player2_id
+    FROM jsonb_array_elements_text(v_participants)
+    WHERE value != v_new_host_id
+    LIMIT 1;
 
-    -- Update player2_id if they were the player2
+    -- Ensure the new host is set to ready
+    IF v_ready_states IS NULL THEN
+      v_ready_states := '{}'::jsonb;
+    END IF;
+    v_ready_states := jsonb_set(v_ready_states, ARRAY[v_new_host_id], 'true'::jsonb);
+
+    UPDATE public.match_rooms
+    SET player1_id = v_new_host_id,
+        player2_id = v_player2_id,
+        participants = v_participants,
+        ready_states = v_ready_states,
+        updated_at = now()
+    WHERE id = p_room_id;
+
+    -- Get new host's display name
+    SELECT COALESCE(display_name, 'Guest Player') INTO v_new_host_name
+    FROM public.profiles
+    WHERE id = v_new_host_id;
+
+    -- Insert system message
+    INSERT INTO public.room_messages (room_id, username, content, is_system)
+    VALUES (p_room_id, 'System', v_new_host_name || ' has been appointed as the new host after the previous host left.', true);
+  ELSE
+    -- If a non-host left, just update participants, ready_states, and player2_id
     IF v_player2_id = p_user_id THEN
-      v_player2_id := NULL;
+      -- Find new player2_id (first participant who is not the host)
+      SELECT value INTO v_player2_id
+      FROM jsonb_array_elements_text(v_participants)
+      WHERE value != v_player1_id
+      LIMIT 1;
     END IF;
 
     UPDATE public.match_rooms
@@ -401,3 +444,154 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION public.list_public_rooms() TO authenticated;
+
+-- 11. Transfer room host manually
+CREATE OR REPLACE FUNCTION public.transfer_room_host(
+  p_room_id text,
+  p_current_host_id text,
+  p_new_host_id text
+)
+RETURNS boolean AS $$
+DECLARE
+  v_room_host text;
+  v_participants jsonb;
+  v_ready_states jsonb;
+  v_player2_id text;
+  v_new_host_name text;
+BEGIN
+  IF public.is_current_user_banned() THEN
+    RAISE EXCEPTION 'User is banned';
+  END IF;
+
+  -- Verify the caller is the host
+  SELECT player1_id, participants, ready_states INTO v_room_host, v_participants, v_ready_states
+  FROM public.match_rooms
+  WHERE id = p_room_id
+  FOR UPDATE;
+
+  IF v_room_host IS NULL THEN
+    RETURN false; -- Room not found
+  END IF;
+
+  IF v_room_host != p_current_host_id OR v_room_host != auth.uid()::text THEN
+    RETURN false; -- Not authorized
+  END IF;
+
+  -- Verify new host is a participant
+  IF NOT (v_participants ? p_new_host_id) THEN
+    RETURN false; -- New host is not in the room
+  END IF;
+
+  -- Determine the new player2_id (first participant who is not the new host)
+  SELECT value INTO v_player2_id
+  FROM jsonb_array_elements_text(v_participants)
+  WHERE value != p_new_host_id
+  LIMIT 1;
+
+  -- Ensure new host is set to ready
+  IF v_ready_states IS NULL THEN
+    v_ready_states := '{}'::jsonb;
+  END IF;
+  v_ready_states := jsonb_set(v_ready_states, ARRAY[p_new_host_id], 'true'::jsonb);
+
+  UPDATE public.match_rooms
+  SET player1_id = p_new_host_id,
+      player2_id = v_player2_id,
+      ready_states = v_ready_states,
+      updated_at = now()
+  WHERE id = p_room_id;
+
+  -- Get new host's display name
+  SELECT COALESCE(display_name, 'Guest Player') INTO v_new_host_name
+  FROM public.profiles
+  WHERE id = p_new_host_id;
+
+  -- Insert a system message into room_messages
+  INSERT INTO public.room_messages (room_id, username, content, is_system)
+  VALUES (p_room_id, 'System', v_new_host_name || ' has been appointed as the new host.', true);
+
+  RETURN true;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.transfer_room_host(text, text, text) TO authenticated;
+
+-- 12. Elect new host if current host disconnects (presence timeout fallback)
+CREATE OR REPLACE FUNCTION public.migrate_host_on_disconnect(
+  p_room_id text,
+  p_disconnected_host_id text
+)
+RETURNS boolean AS $$
+DECLARE
+  v_participants jsonb;
+  v_ready_states jsonb;
+  v_player1_id text;
+  v_player2_id text;
+  v_new_host_id text;
+  v_new_host_name text;
+BEGIN
+  IF public.is_current_user_banned() THEN
+    RAISE EXCEPTION 'User is banned';
+  END IF;
+
+  -- Get current room details with row-level lock
+  SELECT participants, ready_states, player1_id, player2_id
+  INTO v_participants, v_ready_states, v_player1_id, v_player2_id
+  FROM public.match_rooms
+  WHERE id = p_room_id
+  FOR UPDATE;
+
+  IF v_player1_id IS NULL OR v_player1_id != p_disconnected_host_id THEN
+    RETURN false; -- Host already changed or room doesn't exist
+  END IF;
+
+  -- Remove disconnected host from participants and ready_states
+  v_participants := v_participants - p_disconnected_host_id;
+  IF v_ready_states IS NOT NULL THEN
+    v_ready_states := v_ready_states - p_disconnected_host_id;
+  END IF;
+
+  -- If no participants left, delete the room
+  IF jsonb_array_length(v_participants) = 0 THEN
+    DELETE FROM public.match_rooms WHERE id = p_room_id;
+    RETURN true;
+  END IF;
+
+  -- Promote the first remaining participant to host
+  v_new_host_id := v_participants ->> 0;
+  
+  -- Find new player2_id (first remaining participant who is not the new host)
+  SELECT value INTO v_player2_id
+  FROM jsonb_array_elements_text(v_participants)
+  WHERE value != v_new_host_id
+  LIMIT 1;
+
+  -- Ensure new host is set to ready
+  IF v_ready_states IS NULL THEN
+    v_ready_states := '{}'::jsonb;
+  END IF;
+  v_ready_states := jsonb_set(v_ready_states, ARRAY[v_new_host_id], 'true'::jsonb);
+
+  UPDATE public.match_rooms
+  SET player1_id = v_new_host_id,
+      player2_id = v_player2_id,
+      participants = v_participants,
+      ready_states = v_ready_states,
+      updated_at = now()
+  WHERE id = p_room_id;
+
+  -- Get new host's display name
+  SELECT COALESCE(display_name, 'Guest Player') INTO v_new_host_name
+  FROM public.profiles
+  WHERE id = v_new_host_id;
+
+  -- Insert system message
+  INSERT INTO public.room_messages (room_id, username, content, is_system)
+  VALUES (p_room_id, 'System', v_new_host_name || ' has been appointed as the new host due to host disconnection.', true);
+
+  RETURN true;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.migrate_host_on_disconnect(text, text) TO authenticated;
+

@@ -45,11 +45,11 @@ React-GeoZora/
 ├── package.json          # Dependency and script definitions
 ├── tsconfig.json         # TypeScript configuration
 ├── vite.config.ts        # Vite build configuration
-├── assets/               # Branding and design banner resources
-│   └── geozora_banner.png
 ├── public/               # Static assets folder (served at root)
-│   ├── logo.png          # High-quality GeoZora game logo
-│   └── favicon.png       # Site favicon
+│   ├── favicon.png       # Site favicon and logo
+│   ├── geozora_banner.png # Branding and design banner resources
+│   └── audio/            # Game audio resources
+│       └── bgm.mp3       # Loopable background music
 ├── supabase/             # Supabase configuration & migrations
 │   └── migrations/
 │       ├── 01_core_schema.sql                   # Profiles, progression ELO, ban policies
@@ -150,6 +150,9 @@ GeoZora delegates critical state management and scoring logic to PostgreSQL func
 *   `exp_history`: Tracks experience point (XP) gains over time.
 *   `notifications`: Real-time alerts sent to users for level-ups, ELO updates, and unlocked achievements.
 *   `activity_logs`: Logs user actions (like logins/logouts) for auditing.
+*   `map_regions`: Stores geometric bounding boxes, maps filters (e.g., World, Europe), and availability configurations.
+*   `map_fallback_locations`: Stores fallback coordinates and camera orientations for Street View in each region.
+*   `game_modes`: Contains dynamic gameplay configurations (such as rounds, timers, and descriptions) loaded by the client.
 *   `matchmaking_queue`: Temporary queue tracking users waiting for head-to-head matches.
 *   `match_rooms`: Represents active gameplay lobbies containing participant lists, ready states, scores, round targets (Street View locations), and rules constraints.
 *   `match_history`: Logs historic matches with final scores, ELO changes, XP earned, game rules, and matching region configurations.
@@ -159,11 +162,15 @@ GeoZora delegates critical state management and scoring logic to PostgreSQL func
 
 ### Authoritative PL/pgSQL RPCs
 *   `sync_profile`: Connects client session details to database profiles, auto-handles guest-to-Google transitions, and generates unique guest names.
+*   `update_profile_safe`: Securely updates a player's display name, preferences, and avatar URL while validating constraints.
 *   `submit_match_guess`: Securely verifies coordinate distance using the haversine formula, calculates scores server-side, detects telemetry anomalies, and records guess submissions.
 *   `increment_player_stats`: Performs server-side validation of ELO and XP calculations before updating player profiles to block client injections.
+*   `find_match`: Powers competitive matchmaking by matching players in the queue based on ELO and search expansion range.
 *   `join_match_room` / `leave_match_room`: Manages atomic operations for multiplayer lobby joins and departures.
 *   `delete_guest_profile`: Safely purges a guest profile when they manually log out.
+*   `get_leaderboard`: Generates paginated ELO leaderboard rankings.
 *   `cleanup_inactive_guests`: An admin-only maintenance procedure scheduled via pg_cron to remove stale guest entries.
+*   `cleanup_stale_rooms` / `mark_inactive_offline`: System maintenance routines to purge empty lobbies and flag offline users.
 
 ---
 
@@ -194,6 +201,7 @@ GeoZora delegates critical state management and scoring logic to PostgreSQL func
     VITE_SUPABASE_URL=your_supabase_url
     VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
     VITE_GOOGLE_MAPS_PLATFORM_KEY=your_google_maps_platform_key
+    VITE_GOOGLE_MAPS_MAP_ID=your_google_maps_map_id # Optional, defaults to 'DEMO_MAP_ID'
     VITE_IS_MAINTENANCE_MODE=false
     ```
 
@@ -209,6 +217,10 @@ GeoZora delegates critical state management and scoring logic to PostgreSQL func
     ```bash
     npm run build
     ```
+
+### 💡 Development Tips
+
+*   **Bypassing Anti-Cheat:** The anti-cheat debugger and console printing traps automatically bypass on `localhost`, `127.0.0.1`, and local `192.168.*` IPs. If you are debugging on a preview/production branch (e.g. Vercel) and need to bypass the controls, append `?bypass_anticheat=true` to the URL or execute `localStorage.setItem('bypass_anticheat', 'true')` in your browser's console.
 
 ---
 

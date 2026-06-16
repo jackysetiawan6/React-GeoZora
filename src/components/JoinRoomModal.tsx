@@ -118,7 +118,10 @@ export default function JoinRoomModal({ onClose, onJoin }: JoinRoomModalProps) {
 							</button>
 						</div>
 
-						<div className="bg-[var(--color-app-bg)]/40 border border-[var(--color-app-border-light)] rounded-xl overflow-y-auto max-h-56 p-2 flex flex-col gap-2 min-h-24 justify-center">
+						<div className={cn(
+							"bg-[var(--color-app-bg)]/40 border border-[var(--color-app-border-light)] rounded-xl overflow-y-auto max-h-56 p-2 flex flex-col gap-2 min-h-24",
+							(isLoadingRooms || publicRooms.length === 0) && "justify-center"
+						)}>
 							{isLoadingRooms ? (
 								<div className="flex flex-col items-center justify-center py-6 gap-2 text-[var(--color-app-text-muted)]">
 									<Loader2 className="w-6 h-6 animate-spin text-[var(--color-app-blue)]" />

@@ -450,9 +450,7 @@ export default function Header({
 					handleLogoClick();
 				}}
 				className="flex items-center gap-2 flex-shrink-0 w-fit max-w-full hover:opacity-80 transition-opacity whitespace-nowrap">
-				<div className="w-8 h-8 rounded-full bg-[var(--color-app-blue)] flex items-center justify-center">
-					<MapPin className="w-5 h-5 text-white" />
-				</div>
+				<img src="/favicon.png" alt="GeoZora Logo" className="w-8 h-8 object-contain" />
 				<span className="text-xl font-bold tracking-tight text-[var(--color-app-text)]">
 					Geo<span className="text-[var(--color-app-blue)]">Zora</span>
 				</span>

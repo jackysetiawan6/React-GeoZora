@@ -48,18 +48,21 @@ function backoffDelay(attempt: number): Promise<void> {
  * This prevents userscripts (like Tampermonkey) that hook global window.fetch
  * from intercepting or modifying Supabase network payloads.
  */
+let activeIframe: HTMLIFrameElement | null = null;
+
 function getCleanFetch(): typeof fetch {
 	if (typeof window === "undefined" || typeof document === "undefined") {
 		return fetch;
 	}
 	try {
-		const iframe = document.createElement("iframe");
-		iframe.style.display = "none";
-		document.documentElement.appendChild(iframe);
-		const cleanFetch = iframe.contentWindow?.fetch;
-		iframe.remove();
+		if (!activeIframe) {
+			activeIframe = document.createElement("iframe");
+			activeIframe.style.display = "none";
+			document.documentElement.appendChild(activeIframe);
+		}
+		const cleanFetch = activeIframe.contentWindow?.fetch;
 		if (cleanFetch) {
-			return cleanFetch.bind(window);
+			return cleanFetch.bind(activeIframe.contentWindow);
 		}
 	} catch (e) {
 		console.debug("Failed to extract sandboxed fetch:", e);

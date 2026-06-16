@@ -81,7 +81,6 @@ class AudioManager {
 			// Create HTML5 Audio element for looping BGM
 			this.bgmElement = new Audio("/audio/bgm.mp3");
 			this.bgmElement.loop = true;
-			this.bgmElement.crossOrigin = "anonymous";
 
 			// Create media source and connect to music gain node
 			this.bgmSource = this.audioCtx.createMediaElementSource(this.bgmElement);
@@ -152,12 +151,20 @@ class AudioManager {
 
 	public startMusic() {
 		if (this.isPlayingMusic) return;
-		void this.resume().then(() => {
-			if (!this.audioCtx || !this.bgmElement) return;
-			this.isPlayingMusic = true;
-			this.bgmElement.play().catch(err => {
-				console.warn("BGM playback blocked or failed:", err);
-			});
+		this.init();
+		if (!this.bgmElement) return;
+
+		this.isPlayingMusic = true;
+
+		// Resume the AudioContext (can be asynchronous, doesn't block play())
+		if (this.audioCtx && this.audioCtx.state === "suspended") {
+			void this.audioCtx.resume();
+		}
+
+		// Play BGM synchronously inside the user gesture handler
+		this.bgmElement.play().catch(err => {
+			console.warn("BGM playback blocked or failed:", err);
+			this.isPlayingMusic = false;
 		});
 	}
 

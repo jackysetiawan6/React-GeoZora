@@ -564,16 +564,33 @@ export async function saveMatchHistory(
 			}
 		}
 
+		// Verify which user IDs exist in the profiles table to avoid foreign key violations (e.g. "bot", "ai", or deleted guest profiles)
+		const idsToCheck = [player1Id, player2Id, winnerId].filter((id): id is string => !!id && id !== "bot" && id !== "ai");
+		let existingProfileIds = new Set<string>();
+		if (idsToCheck.length > 0) {
+			const { data: profiles, error: checkError } = await supabase
+				.from("profiles")
+				.select("id")
+				.in("id", idsToCheck);
+			if (!checkError && profiles) {
+				existingProfileIds = new Set(profiles.map(p => p.id));
+			}
+		}
+
+		const dbPlayer1Id = player1Id && existingProfileIds.has(player1Id) ? player1Id : null;
+		const dbPlayer2Id = player2Id && existingProfileIds.has(player2Id) ? player2Id : null;
+		const dbWinnerId = winnerId && existingProfileIds.has(winnerId) ? winnerId : null;
+
 		const { error } = await supabase.from("match_history").insert([
 			{
 				match_id: matchId,
-				player1_id: player1Id,
-				player2_id: player2Id,
+				player1_id: dbPlayer1Id,
+				player2_id: dbPlayer2Id,
 				player1_name: player1Name,
 				player2_name: player2Name,
 				player1_score: player1Score,
 				player2_score: player2Score,
-				winner_id: winnerId,
+				winner_id: dbWinnerId,
 				mode,
 				selected_maps: selectedMaps,
 				total_rounds: totalRounds,

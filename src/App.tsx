@@ -576,7 +576,8 @@ export default function App() {
 	const handleCreatorRoomLeave = useCallback(() => {
 		if (creatorRoom && creatorRoom.status === "waiting" && user) {
 			const isHost = creatorRoom.player1_id === user.uid;
-			if (isHost) {
+			const hasOtherPlayers = (creatorRoom.participants || []).length > 1;
+			if (isHost && !hasOtherPlayers) {
 				void deleteRoom(creatorRoom.id, user.uid);
 			} else {
 				void leaveRoom(creatorRoom.id, user.uid);
@@ -619,9 +620,10 @@ export default function App() {
 			if (!user) return;
 			const myId = user.uid;
 			const isHost = creatorRoom.player1_id === myId;
-			if (isHost && creatorRoom.status === "waiting") {
+			const hasOtherPlayers = (creatorRoom.participants || []).length > 1;
+			if (isHost && !hasOtherPlayers && creatorRoom.status === "waiting") {
 				void deleteRoom(creatorRoom.id, myId);
-			} else if (!isHost && creatorRoom.status === "waiting") {
+			} else if ((!isHost || hasOtherPlayers) && creatorRoom.status === "waiting") {
 				void leaveRoom(creatorRoom.id, myId);
 			}
 			clearMatchSession();

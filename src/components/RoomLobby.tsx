@@ -13,6 +13,7 @@ import {
 	Check,
 	Trash2,
 	AlertTriangle,
+	Crown,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
@@ -105,6 +106,7 @@ export default function RoomLobby({
 	const [isEditingSettings, setIsEditingSettings] = useState(false);
 	const [isConfirmingClose, setIsConfirmingClose] = useState(false);
 	const [playerToKick, setPlayerToKick] = useState<{ id: string; name: string } | null>(null);
+	const [playerToTransferHost, setPlayerToTransferHost] = useState<{ id: string; name: string } | null>(null);
 	const [localIsReady, setLocalIsReady] = useState(isHost); // Host is ready by default
 	const [isSyncingReady, setIsSyncingReady] = useState(false); // Track ready status sync state
 	const [localIsPublic, setLocalIsPublic] = useState(room.is_public ?? true);
@@ -405,8 +407,20 @@ export default function RoomLobby({
 				}
 
 				if (!hostFound && !isHostRef.current && presenceCount > 0 && hostFirstMissingTimeRef.current !== null && (Date.now() - hostFirstMissingTimeRef.current >= 15000) && isSettledRef.current) {
-					toast.error("The host has left the room. Moving back to home.");
-					onLeaveRef.current();
+					toast.info("Host disconnected. Assigning a new host...");
+					const currentHostId = roomRef.current.player1_id;
+					void supabase.rpc("migrate_host_on_disconnect", {
+						p_room_id: roomRef.current.id,
+						p_disconnected_host_id: currentHostId
+					}).then(({ data, error }) => {
+						if (error) {
+							console.error("Failed to migrate host on disconnect:", error);
+						} else if (data === true) {
+							toast.success("A new host has been assigned!");
+						}
+					});
+					hostFirstMissingTimeRef.current = null;
+					hostMissingCountRef.current = 0;
 					return;
 				}
 
@@ -602,7 +616,10 @@ export default function RoomLobby({
 		if (!user) return;
 		const myId = user.uid;
 		clearMatchSession();
-		if (isHost) {
+
+		const hasOtherPlayers = players.length > 1;
+
+		if (isHost && !hasOtherPlayers) {
 			if (!isConfirmingClose) {
 				setIsConfirmingClose(true);
 				return;
@@ -639,6 +656,12 @@ export default function RoomLobby({
 				onLeave();
 			}
 		} else {
+			// If guest player OR host but there are other players (transfer host instead of deleting)
+			if (isHost && hasOtherPlayers && !isConfirmingClose) {
+				setIsConfirmingClose(true);
+				return;
+			}
+
 			try {
 				await leaveRoom(room.id, myId);
 			} catch (err) {
@@ -891,9 +914,13 @@ export default function RoomLobby({
 									<AlertTriangle className="w-4 h-4" />
 								:	<X className="w-4 h-4" />}
 								{isHost ?
-									isConfirmingClose ?
-										"Confirm Close?"
-									:	"Close Room"
+									players.length > 1 ?
+										isConfirmingClose ?
+											"Confirm Leave?"
+										:	"Leave Room"
+									:	isConfirmingClose ?
+											"Confirm Close?"
+										:	"Close Room"
 								:	"Leave Room"}
 							</button>
 							{isConfirmingClose && (
@@ -1132,13 +1159,22 @@ export default function RoomLobby({
 												</div>
 											</div>
 											{isHost && !p.isHost && (
-												<button
-													onClick={() => setPlayerToKick({ id: p.id, name: p.name })}
-													className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-red-500/20 rounded-full text-red-400"
-													title="Kick this player"
-													aria-label={`Kick ${p.name}`}>
-													<X className="w-3.5 h-3.5" />
-												</button>
+												<div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+													<button
+														onClick={() => setPlayerToTransferHost({ id: p.id, name: p.name })}
+														className="p-1.5 hover:bg-yellow-500/20 rounded-full text-yellow-500"
+														title="Make this player host"
+														aria-label={`Make ${p.name} host`}>
+														<Crown className="w-3.5 h-3.5" />
+													</button>
+													<button
+														onClick={() => setPlayerToKick({ id: p.id, name: p.name })}
+														className="p-1.5 hover:bg-red-500/20 rounded-full text-red-400"
+														title="Kick this player"
+														aria-label={`Kick ${p.name}`}>
+														<X className="w-3.5 h-3.5" />
+													</button>
+												</div>
 											)}
 										</div>
 									))}
@@ -1170,9 +1206,13 @@ export default function RoomLobby({
 										<Hash className="w-4 h-4" />
 									:	<X className="w-4 h-4" />}
 									{isHost ?
-										isConfirmingClose ?
-											"Confirm Close?"
-										:	"Close Room"
+										players.length > 1 ?
+											isConfirmingClose ?
+												"Confirm Leave?"
+											:	"Leave Room"
+										:	isConfirmingClose ?
+												"Confirm Close?"
+											:	"Close Room"
 									:	"Leave Room"}
 								</button>
 								{isConfirmingClose && (
@@ -1488,6 +1528,56 @@ export default function RoomLobby({
 								className="flex-1 h-12 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold shadow-lg shadow-red-950/20 transition-colors"
 							>
 								Kick Player
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
+			{playerToTransferHost && (
+				<div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+					<div className="bg-[var(--color-app-panel)] border border-[var(--color-app-border-light)] rounded-3xl w-full max-w-md shadow-2xl p-6 relative text-[var(--color-app-text)] text-center animate-in fade-in zoom-in-95 duration-200">
+						<div className="w-16 h-16 bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+							<Crown className="w-8 h-8 animate-pulse" />
+						</div>
+						<h3 className="text-lg font-black text-[var(--color-app-text)] mb-2">
+							Transfer Host?
+						</h3>
+						<p className="text-sm text-[var(--color-app-text-muted)] mb-6">
+							Are you sure you want to transfer host authority to <span className="text-[var(--color-app-text)] font-bold">{playerToTransferHost.name}</span>? You will become a regular player.
+						</p>
+						<div className="flex gap-3">
+							<button
+								onClick={() => setPlayerToTransferHost(null)}
+								className="flex-1 h-12 rounded-xl border border-[var(--color-app-border-light)] bg-[var(--color-app-hover)] font-bold hover:bg-[var(--color-app-border)] transition-colors"
+							>
+								Cancel
+							</button>
+							<button
+								onClick={async () => {
+									const p = playerToTransferHost;
+									setPlayerToTransferHost(null);
+									try {
+										const { data, error } = await supabase.rpc("transfer_room_host", {
+											p_room_id: room.id,
+											p_current_host_id: user?.uid || "",
+											p_new_host_id: p.id,
+										});
+										if (error) {
+											console.error("Transfer host error:", error);
+											toast.error("Failed to transfer host");
+										} else if (data === true) {
+											toast.success(`Transferred host to ${p.name}`);
+										} else {
+											toast.error("Failed to transfer host");
+										}
+									} catch (err) {
+										console.error("Transfer host error:", err);
+										toast.error("Failed to transfer host");
+									}
+								}}
+								className="flex-1 h-12 rounded-xl bg-yellow-600 hover:bg-yellow-500 text-white font-bold shadow-lg shadow-yellow-950/20 transition-colors"
+							>
+								Transfer Host
 							</button>
 						</div>
 					</div>

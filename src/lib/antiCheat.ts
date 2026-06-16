@@ -15,6 +15,8 @@ export interface TelemetryData {
 export function isBypassOrigin(): boolean {
 	if (typeof window === "undefined") return true;
 	try {
+		const hn = window.location.hostname;
+		if (hn === "localhost" || hn === "127.0.0.1" || hn.startsWith("192.168.")) return true;
 		const params = new URLSearchParams(window.location.search);
 		if (params.get("bypass_anticheat") === "true") return true;
 		if (localStorage.getItem("bypass_anticheat") === "true") return true;
