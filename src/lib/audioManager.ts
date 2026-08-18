@@ -42,6 +42,8 @@ class AudioManager {
 	private bgmSource: MediaElementAudioSourceNode | null = null;
 
 	private isPlayingMusic = false;
+	private musicPlayRequestId = 0;
+	private musicPlayPromise: Promise<void> | null = null;
 
 	constructor() {
 		// Load settings from localStorage
@@ -149,26 +151,42 @@ class AudioManager {
 
 	// ─── BACKGROUND MUSIC (BGM) PLAYER ──────────────────────────
 
-	public startMusic() {
-		if (this.isPlayingMusic) return;
+	public async startMusic(): Promise<void> {
 		this.init();
 		if (!this.bgmElement) return;
 
+		if (this.isPlayingMusic && !this.bgmElement.paused) return;
+		if (this.musicPlayPromise) return this.musicPlayPromise;
+
 		this.isPlayingMusic = true;
+		const requestId = ++this.musicPlayRequestId;
 
-		// Resume the AudioContext (can be asynchronous, doesn't block play())
-		if (this.audioCtx && this.audioCtx.state === "suspended") {
-			void this.audioCtx.resume();
-		}
+		this.musicPlayPromise = (async () => {
+			// Resume the AudioContext (can be asynchronous, doesn't block play())
+			if (this.audioCtx && this.audioCtx.state === "suspended") {
+				await this.audioCtx.resume();
+			}
 
-		// Play BGM synchronously inside the user gesture handler
-		this.bgmElement.play().catch(err => {
-			console.warn("BGM playback blocked or failed:", err);
-			this.isPlayingMusic = false;
-		});
+			if (requestId !== this.musicPlayRequestId || !this.bgmElement) return;
+
+			await this.bgmElement.play();
+		})()
+			.catch(err => {
+				console.warn("BGM playback blocked or failed:", err);
+				this.isPlayingMusic = false;
+			})
+			.finally(() => {
+				if (this.musicPlayRequestId === requestId) {
+					this.musicPlayPromise = null;
+				}
+			});
+
+		return this.musicPlayPromise;
 	}
 
 	public stopMusic() {
+		this.musicPlayRequestId += 1;
+		this.musicPlayPromise = null;
 		this.isPlayingMusic = false;
 		if (this.bgmElement) {
 			this.bgmElement.pause();

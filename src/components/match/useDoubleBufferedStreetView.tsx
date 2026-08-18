@@ -72,6 +72,13 @@ export function useDoubleBufferedStreetView({
   const [activeSlot, setActiveSlot] = useState<PanoSlot>('A');
   const [streetViewLoading, setStreetViewLoading] = useState(true);
 
+  const isSameTarget = useCallback((a: StreetViewTarget | null | undefined, b: StreetViewTarget | null | undefined) => {
+    if (!a || !b) return false;
+    if (a.panoId && b.panoId) return a.panoId === b.panoId;
+
+    return Math.abs(a.lat - b.lat) < 1e-7 && Math.abs(a.lng - b.lng) < 1e-7;
+  }, []);
+
   const getContainer = useCallback((slot: PanoSlot) => {
     return slot === 'A' ? containerARef.current : containerBRef.current;
   }, []);
@@ -95,31 +102,35 @@ export function useDoubleBufferedStreetView({
     setActiveSlot(slot);
   }, []);
 
-  const hasReadyRound = useCallback((round: number) => {
-    const a = readyRefs.current.A;
-    const b = readyRefs.current.B;
-
-    return Boolean((a?.round === round && a.ready) || (b?.round === round && b.ready));
-  }, []);
-
-  const hasLoadingRound = useCallback((round: number) => {
+  const hasReadyRound = useCallback((round: number, target?: StreetViewTarget | null) => {
     const a = readyRefs.current.A;
     const b = readyRefs.current.B;
 
     return Boolean(
-      (a?.round === round && a.loading) || (b?.round === round && b.loading)
+      (a?.round === round && a.ready && (!target || isSameTarget(a.target, target))) ||
+      (b?.round === round && b.ready && (!target || isSameTarget(b.target, target)))
     );
-  }, []);
+  }, [isSameTarget]);
 
-  const getReadySlotForRound = useCallback((round: number): PanoSlot | null => {
+  const hasLoadingRound = useCallback((round: number, target?: StreetViewTarget | null) => {
     const a = readyRefs.current.A;
     const b = readyRefs.current.B;
 
-    if (a?.round === round && a.ready) return 'A';
-    if (b?.round === round && b.ready) return 'B';
+    return Boolean(
+      (a?.round === round && a.loading && (!target || isSameTarget(a.target, target))) ||
+      (b?.round === round && b.loading && (!target || isSameTarget(b.target, target)))
+    );
+  }, [isSameTarget]);
+
+  const getReadySlotForRound = useCallback((round: number, target?: StreetViewTarget | null): PanoSlot | null => {
+    const a = readyRefs.current.A;
+    const b = readyRefs.current.B;
+
+    if (a?.round === round && a.ready && (!target || isSameTarget(a.target, target))) return 'A';
+    if (b?.round === round && b.ready && (!target || isSameTarget(b.target, target))) return 'B';
 
     return null;
-  }, []);
+  }, [isSameTarget]);
 
   const loadIntoSlot = useCallback(
     async (slot: PanoSlot, round: number, target: StreetViewTarget) => {
@@ -422,7 +433,7 @@ export function useDoubleBufferedStreetView({
   const preloadRound = useCallback(
     async (round: number, target: StreetViewTarget | null) => {
       if (!target) return;
-      if (hasReadyRound(round) || hasLoadingRound(round)) return;
+      if (hasReadyRound(round, target) || hasLoadingRound(round, target)) return;
 
       const inactiveSlot = getInactiveSlot();
       await loadIntoSlot(inactiveSlot, round, target);
@@ -432,7 +443,7 @@ export function useDoubleBufferedStreetView({
 
   const showRound = useCallback(
     async (round: number, target: StreetViewTarget) => {
-      const readySlot = getReadySlotForRound(round);
+      const readySlot = getReadySlotForRound(round, target);
 
       if (readySlot) {
         setActiveSlotSafely(readySlot);

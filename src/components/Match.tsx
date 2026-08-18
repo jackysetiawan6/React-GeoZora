@@ -852,6 +852,10 @@ export default function Match({
 	const nextRoundTimerRef = useRef<number | null>(null);
 	const hintTimerRef = useRef<number | null>(null);
 	const isSubmittingRef = useRef(false);
+	const revealTransitionRoundRef = useRef<number | null>(null);
+	const roundTransitionInFlightRef = useRef(false);
+	const roundTransitionTokenRef = useRef(0);
+	const roundTransitionRoundRef = useRef<number | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const channelRef = useRef<ReturnType<typeof subscribeToRoom> | null>(null);
 	const presenceMonitorRef = useRef<RoomPresenceMonitor | null>(null);
@@ -1131,6 +1135,13 @@ export default function Match({
 			window.clearTimeout(botTimerRef.current);
 			botTimerRef.current = null;
 		}
+	}, []);
+
+	const resetRoundTransitionLock = useCallback(() => {
+		revealTransitionRoundRef.current = null;
+		roundTransitionInFlightRef.current = false;
+		roundTransitionTokenRef.current += 1;
+		roundTransitionRoundRef.current = null;
 	}, []);
 
 	const getResolvedRoundCount = useCallback(
@@ -1510,7 +1521,8 @@ export default function Match({
 
 		resetQueue();
 		resetBuffers();
-	}, [clearTimers, resetBuffers, resetQueue, resetTelemetry]);
+		resetRoundTransitionLock();
+	}, [clearTimers, resetBuffers, resetQueue, resetTelemetry, resetRoundTransitionLock]);
 
 	const finalizeInvalidCreatorRoom = useCallback(
 		async (reason: string) => {
@@ -1571,6 +1583,7 @@ export default function Match({
 			setRemainingSec(resolvedSeconds);
 			setCurrentRoundIndex(0);
 			setPhase("loading");
+			resetRoundTransitionLock();
 
 			if (!API_KEY || mode === "chaos") {
 				setPhase("finished");
@@ -1744,6 +1757,7 @@ export default function Match({
 			getTargetForRound,
 			initFirstRound,
 			resetMatchState,
+			resetRoundTransitionLock,
 			seedInitialTargets,
 			user?.uid,
 		],
@@ -2080,6 +2094,10 @@ export default function Match({
 
 	const loadRound = useCallback(
 		async (roundNumber: number) => {
+			if (roundTransitionInFlightRef.current) return;
+			roundTransitionInFlightRef.current = true;
+			const transitionToken = ++roundTransitionTokenRef.current;
+			roundTransitionRoundRef.current = roundNumber;
 			const requestId = ++requestIdRef.current;
 			const resolvedSeconds = getResolvedRoundSeconds(roomMode);
 
@@ -2126,15 +2144,26 @@ export default function Match({
 				return null;
 			})();
 
-			if (!nextTarget || requestIdRef.current !== requestId) return;
-
-			await showRound(roundNumber, nextTarget);
-
-			if (requestIdRef.current !== requestId) return;
+			if (
+				!nextTarget ||
+				requestIdRef.current !== requestId ||
+				roundTransitionTokenRef.current !== transitionToken
+			) {
+				return;
+			}
 
 			setTarget(nextTarget);
 			setCurrentRoundIndex(roundNumber);
 			setRemainingSec(resolvedSeconds);
+			await showRound(roundNumber, nextTarget);
+
+			if (
+				requestIdRef.current !== requestId ||
+				roundTransitionTokenRef.current !== transitionToken
+			) {
+				return;
+			}
+
 			setPhase("playing");
 
 			// Persist current round to DB for room matches so server/other clients can stay in sync
@@ -2285,6 +2314,8 @@ export default function Match({
 
 	const finalizeReveal = useCallback(async () => {
 		if (phaseRef.current === "reveal" || !target) return;
+		if (revealTransitionRoundRef.current === currentRoundIndexRef.current) return;
+		revealTransitionRoundRef.current = currentRoundIndexRef.current;
 		setPhase("reveal");
 		clearTimers();
 

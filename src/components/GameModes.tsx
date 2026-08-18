@@ -34,7 +34,7 @@ export default function GameModes({
 	};
 
 	return (
-		<div className="flex flex-col justify-start gap-3 w-full h-full pt-8">
+		<div className="flex flex-col justify-start w-full h-full min-h-0 max-h-full overflow-y-auto no-scrollbar pt-4 lg:pt-6 pb-2 pr-1">
 			<div className="flex items-center justify-between mb-1">
 				<h3 className="text-[var(--color-app-text-muted)] font-bold uppercase tracking-widest text-xs">
 					Game Modes

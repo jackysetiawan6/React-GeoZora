@@ -90,7 +90,7 @@ export default function Hero({ onPlayClick, onQuickMatchClick }: HeroProps) {
   };
 
   return (
-    <div className="flex flex-col justify-end z-10 w-full max-w-lg h-full pb-8">
+    <div className="flex flex-col justify-end z-10 w-full max-w-lg h-full min-h-0 max-h-full overflow-y-auto no-scrollbar pb-8">
       <h1 className="text-5xl xl:text-6xl font-bold leading-tight tracking-tight mb-4 mt-6">
         <span className="text-[var(--color-app-blue)]">Explore</span>{' '}
         <span className="text-[var(--color-app-text)]">the World.</span>
