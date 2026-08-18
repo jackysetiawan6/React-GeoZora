@@ -2101,91 +2101,98 @@ export default function Match({
 			const requestId = ++requestIdRef.current;
 			const resolvedSeconds = getResolvedRoundSeconds(roomMode);
 
-			clearTimers();
-			setPhase("loading");
-			setRemainingSec(resolvedSeconds); // Reset timer early so HUD / other states don't read old round's 0 value
-			geocodeTokenRef.current += 1;
+			try {
+				clearTimers();
+				setPhase("loading");
+				setRemainingSec(resolvedSeconds); // Reset timer early so HUD / other states don't read old round's 0 value
+				geocodeTokenRef.current += 1;
 
-			setGuess(null);
-			setTarget(null);
-			setCurrentResult(null);
-			setLocationName("");
-			setOpponentRoundDone(false);
-			setShowHint(false);
-			botGuessRef.current = null;
-			isSubmittingRef.current = false;
-			setIsSubmitting(false);
+				setGuess(null);
+				setTarget(null);
+				setCurrentResult(null);
+				setLocationName("");
+				setOpponentRoundDone(false);
+				setShowHint(false);
+				botGuessRef.current = null;
+				isSubmittingRef.current = false;
+				setIsSubmitting(false);
 
-			resetTelemetry(Date.now());
+				resetTelemetry(Date.now());
 
-			const nextTarget = await (async () => {
-				for (let attempts = 0; attempts < 15; attempts++) {
-					const target = await getTargetForRound(
-						roundNumber,
-						roomMode,
-						roundCount,
-					);
-					if (target) return target;
+				const nextTarget = await (async () => {
+					for (let attempts = 0; attempts < 15; attempts++) {
+						const target = await getTargetForRound(
+							roundNumber,
+							roomMode,
+							roundCount,
+						);
+						if (target) return target;
 
-					if (!isRoomMatch || !localRoom?.id) break;
+						if (!isRoomMatch || !localRoom?.id) break;
 
-					try {
-						const latestRoom = await fetchRoom(localRoom.id);
-						if (latestRoom) {
-							setLocalRoom(prev => prev ? { ...prev, ...latestRoom } : latestRoom);
+						try {
+							const latestRoom = await fetchRoom(localRoom.id);
+							if (latestRoom) {
+								setLocalRoom(prev => prev ? { ...prev, ...latestRoom } : latestRoom);
+							}
+						} catch (error) {
+							console.error("Failed to refresh room target queue:", error);
 						}
-					} catch (error) {
-						console.error("Failed to refresh room target queue:", error);
+
+						await new Promise(resolve => window.setTimeout(resolve, 1000));
 					}
 
-					await new Promise(resolve => window.setTimeout(resolve, 1000));
+					return null;
+				})();
+
+				if (
+					!nextTarget ||
+					requestIdRef.current !== requestId ||
+					roundTransitionTokenRef.current !== transitionToken
+				) {
+					return;
 				}
 
-				return null;
-			})();
+				setTarget(nextTarget);
+				setCurrentRoundIndex(roundNumber);
+				setRemainingSec(resolvedSeconds);
+				await showRound(roundNumber, nextTarget);
 
-			if (
-				!nextTarget ||
-				requestIdRef.current !== requestId ||
-				roundTransitionTokenRef.current !== transitionToken
-			) {
-				return;
-			}
+				if (
+					requestIdRef.current !== requestId ||
+					roundTransitionTokenRef.current !== transitionToken
+				) {
+					return;
+				}
 
-			setTarget(nextTarget);
-			setCurrentRoundIndex(roundNumber);
-			setRemainingSec(resolvedSeconds);
-			await showRound(roundNumber, nextTarget);
+				setPhase("playing");
 
-			if (
-				requestIdRef.current !== requestId ||
-				roundTransitionTokenRef.current !== transitionToken
-			) {
-				return;
-			}
+				// Persist current round to DB for room matches so server/other clients can stay in sync
+				if ((isRoomMatch || roomMode === "vsAI") && localRoom) {
+					try {
+						await updateRoom(localRoom.id, { current_round: roundNumber, status: "active" });
+					} catch (err) {
+						console.error("Failed to update room current_round:", err);
+					}
+				}
 
-			setPhase("playing");
+				const nextPreloadTarget = await getTargetForRound(
+					roundNumber + 1,
+					roomMode,
+					roundCount,
+				);
 
-			// Persist current round to DB for room matches so server/other clients can stay in sync
-			if ((isRoomMatch || roomMode === "vsAI") && localRoom) {
-				try {
-					await updateRoom(localRoom.id, { current_round: roundNumber, status: "active" });
-				} catch (err) {
-					console.error("Failed to update room current_round:", err);
+				if (nextPreloadTarget) {
+					void preloadRound(roundNumber + 1, nextPreloadTarget).catch(() => {});
+				}
+
+				void ensureTargetsAhead(roundNumber, roomMode, roundCount, 3);
+			} finally {
+				roundTransitionInFlightRef.current = false;
+				if (roundTransitionTokenRef.current === transitionToken) {
+					roundTransitionRoundRef.current = null;
 				}
 			}
-
-			const nextPreloadTarget = await getTargetForRound(
-				roundNumber + 1,
-				roomMode,
-				roundCount,
-			);
-
-			if (nextPreloadTarget) {
-				void preloadRound(roundNumber + 1, nextPreloadTarget).catch(() => {});
-			}
-
-			void ensureTargetsAhead(roundNumber, roomMode, roundCount, 3);
 		},
 		[
 			clearTimers,

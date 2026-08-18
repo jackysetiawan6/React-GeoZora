@@ -119,12 +119,50 @@ export function initAntiCheat(onChange: (detected: boolean) => void): () => void
 	}
 
 	let devToolsOpen = false;
+	let focusLossTimer: number | null = null;
 
 	const setStatus = (open: boolean) => {
 		isDevToolsDetected = open;
 		if (devToolsOpen !== open) {
 			devToolsOpen = open;
 			onChange(open);
+		}
+	};
+
+	const clearFocusLossTimer = () => {
+		if (focusLossTimer !== null) {
+			window.clearTimeout(focusLossTimer);
+			focusLossTimer = null;
+		}
+	};
+
+	const scheduleFocusLossCheck = () => {
+		clearFocusLossTimer();
+		focusLossTimer = window.setTimeout(() => {
+			focusLossTimer = null;
+			if (!document.hasFocus() || document.visibilityState !== "visible") {
+				setStatus(true);
+			}
+		}, 250);
+	};
+
+	const handleKeydown = (event: KeyboardEvent) => {
+		const key = event.key.toLowerCase();
+		const isDevToolsShortcut =
+			key === "f12" ||
+			((event.ctrlKey || event.metaKey) && event.shiftKey && ["i", "j", "c"].includes(key)) ||
+			((event.ctrlKey || event.metaKey) && key === "u");
+
+		if (isDevToolsShortcut) {
+			setStatus(true);
+		}
+	};
+
+	const handleVisibilityChange = () => {
+		if (document.visibilityState === "hidden") {
+			scheduleFocusLossCheck();
+		} else {
+			clearFocusLossTimer();
 		}
 	};
 
@@ -177,6 +215,10 @@ export function initAntiCheat(onChange: (detected: boolean) => void): () => void
 		console.clear();
 	}, 2000);
 
+	window.addEventListener("blur", scheduleFocusLossCheck);
+	window.addEventListener("focus", clearFocusLossTimer);
+	document.addEventListener("visibilitychange", handleVisibilityChange);
+	window.addEventListener("keydown", handleKeydown, true);
 	window.addEventListener("resize", checkDimensions);
 	checkDimensions();
 
@@ -186,6 +228,11 @@ export function initAntiCheat(onChange: (detected: boolean) => void): () => void
 	return () => {
 		clearInterval(debuggerTimer);
 		clearInterval(consoleTimer);
+		clearFocusLossTimer();
+		window.removeEventListener("blur", scheduleFocusLossCheck);
+		window.removeEventListener("focus", clearFocusLossTimer);
+		document.removeEventListener("visibilitychange", handleVisibilityChange);
+		window.removeEventListener("keydown", handleKeydown, true);
 		window.removeEventListener("resize", checkDimensions);
 	};
 }
