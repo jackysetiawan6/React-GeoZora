@@ -106,6 +106,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION public.get_leaderboard(text, text, integer) TO authenticated, anon;
+REVOKE EXECUTE ON FUNCTION public.get_leaderboard(text, text, integer) FROM PUBLIC;
 
 -- 2. Atomically increment player stats and protect from banned users
 CREATE OR REPLACE FUNCTION public.increment_player_stats(
@@ -352,6 +353,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION public.increment_player_stats(text, integer, integer, double precision, text) TO authenticated, anon;
+REVOKE EXECUTE ON FUNCTION public.increment_player_stats(text, integer, integer, double precision, text) FROM PUBLIC;
 
 -- 3. Secure profile update RPC
 CREATE OR REPLACE FUNCTION public.update_profile_safe(
@@ -395,6 +397,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION public.update_profile_safe(uuid, text, text, text, text, text) TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.update_profile_safe(uuid, text, text, text, text, text) FROM PUBLIC;
 
 -- 4. Admin function to ban/unban users securely
 CREATE OR REPLACE FUNCTION public.admin_set_user_ban_status(
@@ -424,6 +427,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION public.admin_set_user_ban_status(text, boolean, text) TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.admin_set_user_ban_status(text, boolean, text) FROM PUBLIC;
 
 -- 5. Function to cleanup inactive guest profiles (no email and inactive for >p_minutes)
 CREATE OR REPLACE FUNCTION public.cleanup_inactive_guests(p_minutes integer DEFAULT 10)

@@ -78,13 +78,23 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 GRANT EXECUTE ON FUNCTION public.is_current_user_admin() TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.is_current_user_banned() TO authenticated, anon;
 
+-- Security-definer RPCs that accept a user id must bind it to the caller.
+CREATE OR REPLACE FUNCTION public.assert_current_user(p_user_id text)
+RETURNS void AS $$
+BEGIN
+  IF auth.uid() IS NULL OR p_user_id IS DISTINCT FROM auth.uid()::text THEN
+    RAISE EXCEPTION 'Unauthorized request.';
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+REVOKE ALL ON FUNCTION public.assert_current_user(text) FROM PUBLIC;
+
 -- 4. Define Core Table RLS Policies
 DROP POLICY IF EXISTS "Profiles are viewable by everyone" ON public.profiles;
 CREATE POLICY "Profiles are viewable by everyone"
-  ON public.profiles FOR SELECT USING (
-    (auth.uid()::text = id) OR
-    (NOT public.is_current_user_banned() AND NOT is_banned) OR
-    public.is_current_user_admin()
+  ON public.profiles FOR SELECT TO authenticated USING (
+    auth.uid()::text = id OR public.is_current_user_admin()
   );
 
 DROP POLICY IF EXISTS "Users can insert their own profile" ON public.profiles;
@@ -159,12 +169,6 @@ GRANT SELECT, INSERT ON public.activity_logs TO authenticated;
 -- 6. Revoke update privileges on profiles stats/admin/banning fields
 REVOKE UPDATE ON public.profiles FROM authenticated, anon;
 GRANT UPDATE (
-  id,
-  email,
-  avatar_url, 
-  theme_preference, 
-  distance_metric, 
-  map_preference, 
   online_status, 
   last_seen, 
   updated_at
@@ -188,6 +192,11 @@ DECLARE
   v_count integer := 0;
   v_res jsonb;
 BEGIN
+  PERFORM public.assert_current_user(p_user_id::text);
+  IF p_email IS DISTINCT FROM (auth.jwt() ->> 'email') THEN
+    RAISE EXCEPTION 'Profile email must match the authenticated account.';
+  END IF;
+
   -- Check if profile already exists
   SELECT display_name, email, avatar_url INTO v_name, v_email, v_avatar 
   FROM public.profiles 
@@ -280,6 +289,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION public.sync_profile(uuid, text, text, text) TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.sync_profile(uuid, text, text, text) FROM PUBLIC;
 
 -- Function for a guest to delete their own profile
 CREATE OR REPLACE FUNCTION public.delete_guest_profile(p_user_id text)
@@ -296,3 +306,4 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION public.delete_guest_profile(text) TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.delete_guest_profile(text) FROM PUBLIC;

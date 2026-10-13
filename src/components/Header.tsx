@@ -18,7 +18,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { cn, getRankTitle } from "../lib/utils";
 import { useFocusTrap } from "../lib/useFocusTrap";
 import type { AppTab } from "../lib/types";
-import { getLevel, getExpInCurrentLevel, getExpRequiredForLevel } from "../lib/PlayerStats";
+import { fetchPlayerStats, getLevel, getExpInCurrentLevel, getExpRequiredForLevel } from "../lib/PlayerStats";
 import { toast } from "sonner";
 import { useAuth } from "../lib/AuthContext";
 import { useTheme } from "../lib/ThemeContext";
@@ -29,7 +29,7 @@ import FeedbackModal from "./FeedbackModal";
 import NetworkStatusIndicator from "./NetworkStatusIndicator";
 import { Hash } from "lucide-react";
 import type { MatchRoom } from "../lib/Matchmaking";
-import { joinRoom } from "../lib/Matchmaking";
+import { fetchRoom, joinRoom } from "../lib/Matchmaking";
 import { AudioSettingsControl } from "./ui";
 import { audioManager } from "../lib/audioManager";
 
@@ -189,15 +189,8 @@ export default function Header({
 		}
 
 		const fetchStats = async () => {
-			const { data } = await supabase
-				.from("profiles")
-				.select("exp, elo")
-				.eq("id", userId)
-				.single();
-
-			if (data) {
-				setUserStats({ exp: data.exp || 0, elo: data.elo || 1300 });
-			}
+			const stats = await fetchPlayerStats(userId);
+			if (stats) setUserStats({ exp: stats.exp || 0, elo: stats.elo || 1300 });
 		};
 
 		const fetchNotifications = async () => {
@@ -364,7 +357,7 @@ export default function Header({
 
 	const handleJoinRoom = async (code: string) => {
 		const { data, error } = await supabase
-			.rpc("find_room_by_code", { p_code: code })
+			.rpc("find_room_by_code_safe", { p_code: code })
 			.maybeSingle();
 
 		if (error) {
@@ -402,13 +395,7 @@ export default function Header({
 			}
 
 			// Fetch the latest room state from DB so we have the updated participants array
-			const { data: latestRoom } = await supabase
-				.from("match_rooms")
-				.select("*")
-				.eq("id", room.id)
-				.single();
-
-			const activeRoom = latestRoom || room;
+			const activeRoom = (await fetchRoom(room.id)) || room;
 
 			const formattedRoom = {
 				...activeRoom,

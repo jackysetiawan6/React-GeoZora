@@ -68,14 +68,9 @@ DROP POLICY IF EXISTS "Users can update own messages" ON public.room_messages;
 CREATE POLICY "Users can update own messages"
   ON public.room_messages FOR UPDATE TO authenticated
   USING (
-    (
-      auth.uid()::text = user_id OR EXISTS (
-        SELECT 1
-        FROM public.match_rooms mr
-        WHERE mr.id = room_messages.room_id
-          AND mr.player1_id = auth.uid()::text
-      )
-    ) AND NOT public.is_current_user_banned()
+    auth.uid()::text = user_id AND NOT public.is_current_user_banned()
+  ) WITH CHECK (
+    auth.uid()::text = user_id AND NOT public.is_current_user_banned()
   );
 
 DROP POLICY IF EXISTS "Users can create feedbacks" ON public.feedbacks;

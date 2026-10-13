@@ -144,10 +144,15 @@ export default function App() {
 		};
 	}, []);
 
-	// Initialize DevTools anti-cheat monitor on app start
+	// Client-side DevTools signals are advisory only. They are trivial to spoof and
+	// commonly fire when a player switches apps, so they must never lock a player
+	// out or replace server-side gameplay validation.
 	useEffect(() => {
 		const cleanup = initAntiCheat(detected => {
-			setIsBlockedByAntiCheat(detected);
+			if (detected) {
+				void logSystemError("Advisory client anti-cheat signal", { source: "devtools_heuristic" });
+			}
+			setIsBlockedByAntiCheat(false);
 		});
 		return () => {
 			cleanup();

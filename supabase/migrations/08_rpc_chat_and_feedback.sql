@@ -15,7 +15,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-GRANT EXECUTE ON FUNCTION public.insert_system_message(text, text) TO authenticated;
+-- Only trusted server-side routines insert system messages directly.
+REVOKE EXECUTE ON FUNCTION public.insert_system_message(text, text) FROM authenticated, anon, PUBLIC;
 
 -- 2. Helper function to get active online players count
 CREATE OR REPLACE FUNCTION public.get_active_players_count()

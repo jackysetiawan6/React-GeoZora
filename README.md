@@ -60,7 +60,8 @@ React-GeoZora/
 │       ├── 06_rpc_gameplay.sql                  # Authoritative gameplay RPCs (guesses, ELO)
 │       ├── 07_rpc_matchmaking.sql               # Multiplayer matchmaking queue RPCs
 │       ├── 08_rpc_chat_and_feedback.sql         # Real-time chat messaging RPCs
-│       └── 09_rpc_maintenance_utilities.sql     # Admin maintenance, cleanups, offline checks
+│       ├── 09_rpc_maintenance_utilities.sql     # Admin maintenance, cleanups, offline checks
+│       └── 10_security_hardening.sql             # Actor-bound RPCs, private profiles, authoritative rounds
 └── src/                  # React Application Source Code
     ├── main.tsx          # App entry point
     ├── App.tsx           # Root component and main layout coordinator
@@ -206,7 +207,7 @@ GeoZora delegates critical state management and scoring logic to PostgreSQL func
     ```
 
 4.  **Database Migrations:**
-    Apply the SQL scripts under the `supabase/migrations/` folder directly to your Supabase SQL Editor.
+    Apply the SQL scripts under the `supabase/migrations/` folder directly to your Supabase SQL Editor, in numeric order. `10_security_hardening.sql` is required for the current client: it replaces unsafe actor-supplied room RPCs with identity-bound variants and narrows profile visibility.
 
 5.  **Run Development Server:**
     ```bash

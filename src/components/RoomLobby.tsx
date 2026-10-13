@@ -407,18 +407,10 @@ export default function RoomLobby({
 				}
 
 				if (!hostFound && !isHostRef.current && presenceCount > 0 && hostFirstMissingTimeRef.current !== null && (Date.now() - hostFirstMissingTimeRef.current >= 15000) && isSettledRef.current) {
-					toast.info("Host disconnected. Assigning a new host...");
-					const currentHostId = roomRef.current.player1_id;
-					void supabase.rpc("migrate_host_on_disconnect", {
-						p_room_id: roomRef.current.id,
-						p_disconnected_host_id: currentHostId
-					}).then(({ data, error }) => {
-						if (error) {
-							console.error("Failed to migrate host on disconnect:", error);
-						} else if (data === true) {
-							toast.success("A new host has been assigned!");
-						}
-					});
+					// Presence is client-provided and cannot safely authorize a host transfer.
+					// A departing host is transferred atomically by safe_leave_match_room;
+					// an unexpectedly disconnected host may reconnect without losing control.
+					toast.info("Host connection lost. Waiting for the host to reconnect.");
 					hostFirstMissingTimeRef.current = null;
 					hostMissingCountRef.current = 0;
 					return;
@@ -546,9 +538,8 @@ export default function RoomLobby({
 		setIsSyncingReady(true);
 
 		try {
-			const { data, error } = await supabase.rpc("set_player_ready", {
+			const { data, error } = await supabase.rpc("safe_set_player_ready", {
 				p_room_id: room.id,
-				p_user_id: presenceId,
 				p_is_ready: nextReady,
 			});
 
@@ -627,10 +618,7 @@ export default function RoomLobby({
 
 			try {
 				// Delete room from DB via secure RPC
-				const { error } = await supabase.rpc("close_match_room", {
-					p_room_id: room.id,
-					p_user_id: myId,
-				});
+				const { error } = await supabase.rpc("safe_close_match_room", { p_room_id: room.id });
 				if (error) {
 					console.error("Failed to close room:", error);
 					void logSystemError("close_match_room RPC failure", {
@@ -639,16 +627,6 @@ export default function RoomLobby({
 						error: error.message,
 						code: error.code,
 					});
-					// Fallback: try direct delete if RPC fails
-					const { error: deleteError } = await supabase.from("match_rooms").delete().eq("id", room.id);
-					if (deleteError) {
-						console.error("Direct room delete fallback failure:", deleteError);
-						void logSystemError("Direct room delete fallback failure", {
-							roomId: room.id,
-							error: deleteError.message,
-							code: deleteError.code,
-						});
-					}
 				}
 			} catch (err) {
 				console.error("Error during room closure:", err);
@@ -747,7 +725,7 @@ export default function RoomLobby({
 											checked={localIsPublic}
 											onChange={async (val) => {
 												setLocalIsPublic(val);
-												await supabase.from("match_rooms").update({ is_public: val }).eq("id", room.id);
+											await updateRoom(room.id, { is_public: val });
 												const updatedRoom = { ...room, is_public: val };
 												onRoomUpdate?.(updatedRoom);
 												const channel = roomChannelRef.current;
@@ -1012,16 +990,10 @@ export default function RoomLobby({
 																initialTargetCount,
 																"creatorRoom"
 															);
-															const { error: updateError } = await supabase
-																.from("match_rooms")
-																.update({
-																	status: "active",
-																	targets: initialTargets as any,
-																})
-																.eq("id", room.id);
-															if (updateError) {
-																throw updateError;
-															}
+											await updateRoom(room.id, {
+												status: "active",
+												targets: initialTargets as any,
+											});
 
 															const startedRoom: MatchRoom = {
 																...room,
@@ -1053,12 +1025,7 @@ export default function RoomLobby({
 																			"creatorRoom"
 																		);
 																		const combinedTargets = [...initialTargets, ...remainingTargets];
-																		await supabase
-																			.from("match_rooms")
-																			.update({
-																				targets: combinedTargets as any,
-																			})
-																			.eq("id", room.id);
+												await updateRoom(room.id, { targets: combinedTargets as any });
 																	} catch (backgroundError) {
 																		console.error('Failed to continue generating Creator Room targets:', backgroundError);
 																		void logSystemError('Creator Room background target generation failure', {
@@ -1289,20 +1256,15 @@ export default function RoomLobby({
 													editSelectedMaps
 												:	["world"];
 
-											const { error } = await supabase
-												.from("match_rooms")
-												.update({
-													total_rounds: rounds,
-													round_seconds: time,
-													no_moving: editNoMove,
-													no_panning: editNoPan,
-													no_zooming: editNoZoom,
-													selected_maps: mapsToSave,
-													enable_time_multiplier: editEnableTimeMultiplier,
-												})
-												.eq("id", room.id);
-
-											if (error) throw error;
+											await updateRoom(room.id, {
+												total_rounds: rounds,
+												round_seconds: time,
+												no_moving: editNoMove,
+												no_panning: editNoPan,
+												no_zooming: editNoZoom,
+												selected_maps: mapsToSave,
+												enable_time_multiplier: editEnableTimeMultiplier,
+											});
 
 											// Update room state immediately for better sync
 											const updatedRoom = {

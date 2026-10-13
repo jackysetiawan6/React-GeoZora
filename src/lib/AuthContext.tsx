@@ -278,29 +278,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 						(syncResult as any)?.display_name || userObj.displayName;
 					userObj.displayName = syncedDisplayName;
 
-					// Fetch existing profile first to avoid overwriting a custom avatar with null
-					const { data: existingProfile } = await supabase
-						.from("profiles")
-						.select("avatar_url")
-						.eq("id", supaUser.id)
-						.maybeSingle();
-
-					const resolvedAvatarUrl = existingProfile?.avatar_url || userObj.photoURL;
-
-					const { error: profileError } = await supabase
-						.from("profiles")
-						.update({
-							email: supaUser.email || null,
-							avatar_url: resolvedAvatarUrl,
-							last_seen: new Date().toISOString(),
-							updated_at: new Date().toISOString(),
-						})
-						.eq("id", supaUser.id);
-
-					if (profileError) {
-						console.error("Failed to upsert profile row:", profileError);
-					}
-
 					// Fetch full profile info including custom fields
 					const { data: profile } = await supabase
 						.from("profiles")
@@ -411,16 +388,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 		let presenceInterval: number;
 
-		const updatePresence = async () => {
+		const setPresence = async (online: boolean) => {
 			if (user) {
 				try {
-					await supabase
-						.from("profiles")
-						.update({
-							online_status: true,
-							last_seen: new Date().toISOString(),
-						})
-						.eq("id", user.uid);
+					const { error } = await supabase.rpc("set_profile_presence", {
+						p_online: online,
+					});
+					if (error) throw error;
 				} catch (err) {
 					// Presence update failures are non-critical; log at debug level
 					console.debug("Presence update failed (non-critical):", err);
@@ -428,21 +402,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			}
 		};
 
-		const setOffline = async () => {
-			if (user) {
-				try {
-					await supabase
-						.from("profiles")
-						.update({
-							online_status: false,
-							last_seen: new Date().toISOString(),
-						})
-						.eq("id", user.uid);
-				} catch (err) {
-					console.debug("Set offline failed (non-critical):", err);
-				}
-			}
-		};
+		const updatePresence = () => setPresence(true);
+
+		const setOffline = () => setPresence(false);
 
 		if (user) {
 			updatePresence();
@@ -573,14 +535,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			} else {
 				await Promise.all([
 					logActivity("logout"),
-					supabase
-						.from("profiles")
-						.update({
-							online_status: false,
-							last_seen: new Date().toISOString(),
-						})
-						.eq("id", user.uid)
-						.then(),
+					supabase.rpc("set_profile_presence", { p_online: false }).then(({ error }) => {
+						if (error) console.debug("Set offline failed (non-critical):", error);
+					}),
 				]);
 			}
 			await supabase.auth.signOut();

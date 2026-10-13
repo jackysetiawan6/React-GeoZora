@@ -195,39 +195,19 @@ export function calculateAvgScore(totalScore: number, rounds: number): number {
 export async function fetchPlayerStats(
 	userId: string,
 ): Promise<PlayerStats | null> {
-	let { data, error } = await supabase
-		.from("profiles")
-		.select("id, exp, elo, last_avg_score, games_played")
-		.eq("id", userId)
-		.single();
-
-	if (error) {
-		// If last_avg_score is missing, fallback
-		if (error.message.includes("last_avg_score") || error.code === "PGRST200") {
-			const fallback = await supabase
-				.from("profiles")
-				.select("id, exp, elo, games_played")
-				.eq("id", userId)
-				.single();
-
-			data = fallback.data as any;
-			error = fallback.error;
-		} else {
-			console.error("fetchPlayerStats error:", error);
-			return null;
-		}
-	}
-
-	if (error || !data) {
+	const { data, error } = await supabase.rpc("get_public_profiles", { p_ids: [userId] });
+	const profile = Array.isArray(data) ? data[0] : null;
+	if (error || !profile) {
+		if (error) console.error("fetchPlayerStats error:", error);
 		return null;
 	}
 
 	return {
-		user_id: data.id,
-		exp: data.exp ?? 0,
-		elo: data.elo ?? DEFAULT_ELO,
-		last_avg_score: data.last_avg_score ?? 0,
-		games_played: data.games_played ?? 0,
+		user_id: profile.id,
+		exp: profile.exp ?? 0,
+		elo: profile.elo ?? DEFAULT_ELO,
+		last_avg_score: profile.last_avg_score ?? 0,
+		games_played: profile.games_played ?? 0,
 	};
 }
 
@@ -568,10 +548,7 @@ export async function saveMatchHistory(
 		const idsToCheck = [player1Id, player2Id, winnerId].filter((id): id is string => !!id && id !== "bot" && id !== "ai");
 		let existingProfileIds = new Set<string>();
 		if (idsToCheck.length > 0) {
-			const { data: profiles, error: checkError } = await supabase
-				.from("profiles")
-				.select("id")
-				.in("id", idsToCheck);
+			const { data: profiles, error: checkError } = await supabase.rpc("get_public_profiles", { p_ids: idsToCheck });
 			if (!checkError && profiles) {
 				existingProfileIds = new Set(profiles.map(p => p.id));
 			}

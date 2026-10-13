@@ -122,12 +122,8 @@ CREATE POLICY "Authenticated users can create rooms"
 
 DROP POLICY IF EXISTS "Participants can update rooms" ON public.match_rooms;
 CREATE POLICY "Participants can update rooms"
-  ON public.match_rooms FOR UPDATE TO authenticated USING (
-    (auth.uid()::text = player1_id OR 
-     auth.uid()::text = player2_id OR 
-     participants ? auth.uid()::text) AND 
-    NOT public.is_current_user_banned()
-  );
+  ON public.match_rooms FOR UPDATE TO authenticated
+  USING (false) WITH CHECK (false);
 
 DROP POLICY IF EXISTS "Host can delete room" ON public.match_rooms;
 CREATE POLICY "Host can delete room"
@@ -142,8 +138,6 @@ CREATE POLICY "Users can read their own match history"
   );
 
 DROP POLICY IF EXISTS "Users can read all match history for stats" ON public.match_history;
-CREATE POLICY "Users can read all match history for stats"
-  ON public.match_history FOR SELECT TO authenticated USING (NOT public.is_current_user_banned());
 
 DROP POLICY IF EXISTS "Users can insert match history" ON public.match_history;
 CREATE POLICY "Users can insert match history"

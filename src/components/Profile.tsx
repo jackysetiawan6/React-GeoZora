@@ -100,26 +100,8 @@ export default function Profile() {
     setMessage(null);
 
     try {
-      // If the user changed their display name, ensure it's available
-      if (displayName && displayName !== user.displayName) {
-        try {
-          const { data: existing, error: checkErr } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('display_name', displayName)
-            .neq('id', user.uid)
-            .limit(1);
-
-          if (checkErr) throw checkErr;
-          if (existing && (existing as any).length > 0) {
-            setMessage({ type: 'error', text: 'Display name is already taken. Please choose another.' });
-            return;
-          }
-        } catch (err) {
-          console.error('Display name check failed:', err);
-          // allow save to proceed if check fails due to transient error
-        }
-      }
+      // update_profile_safe performs the authoritative uniqueness check without
+      // exposing another player's private profile row.
 
         await updateSettings({
           displayName,

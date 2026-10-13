@@ -135,6 +135,10 @@ BEGIN
     RAISE EXCEPTION 'Not a participant of this room';
   END IF;
 
+  IF v_status <> 'active' OR p_round <> v_current_round THEN
+    RAISE EXCEPTION 'Guess does not match the active round';
+  END IF;
+
   -- Verify timer sanity
   IF p_time_left > v_round_seconds OR p_time_left < 0 THEN
     v_cheat_detected := true;
@@ -225,21 +229,15 @@ BEGIN
     v_cheat_reason := 'Bypassed no-zooming restriction';
   END IF;
 
-  -- If cheat is detected, log and auto-ban
+  -- Client telemetry is advisory. Preserve it for review, but do not let a
+  -- noisy browser-side signal automatically ban an account.
   IF v_cheat_detected THEN
     -- Log cheat
     INSERT INTO public.cheat_logs (
       user_id, username, reason, severity, telemetry_details, round_index, room_id
     ) VALUES (
-      v_user_id, COALESCE(v_username, 'Banned User'), v_cheat_reason, 'ban_auto', p_telemetry, p_round, p_room_id
+      v_user_id, COALESCE(v_username, 'Player'), v_cheat_reason, 'suspicious', p_telemetry, p_round, p_room_id
     );
-
-    -- Auto-ban user
-    UPDATE public.profiles
-    SET is_banned = true,
-        ban_reason = 'Automated Anti-Cheat Ban: ' || v_cheat_reason,
-        ban_timestamp = now()
-    WHERE id = v_user_id;
     
     -- Return response with cheat flag
     RETURN jsonb_build_object(
@@ -354,3 +352,4 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION public.submit_match_guess(text, integer, double precision, double precision, integer, jsonb) TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.submit_match_guess(text, integer, double precision, double precision, integer, jsonb) FROM PUBLIC;

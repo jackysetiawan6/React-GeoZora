@@ -5,6 +5,7 @@
 CREATE OR REPLACE FUNCTION public.close_match_room(p_room_id text, p_user_id text)
 RETURNS void AS $$
 BEGIN
+  PERFORM public.assert_current_user(p_user_id);
   IF public.is_current_user_banned() THEN
     RAISE EXCEPTION 'User is banned';
   END IF;
@@ -20,6 +21,7 @@ GRANT EXECUTE ON FUNCTION public.close_match_room(text, text) TO authenticated;
 CREATE OR REPLACE FUNCTION public.cleanup_user_rooms(p_user_id text)
 RETURNS void AS $$
 BEGIN
+  PERFORM public.assert_current_user(p_user_id);
   IF public.is_current_user_banned() THEN
     RAISE EXCEPTION 'User is banned';
   END IF;
@@ -52,6 +54,7 @@ GRANT EXECUTE ON FUNCTION public.cleanup_user_rooms(text) TO authenticated;
 CREATE OR REPLACE FUNCTION public.leave_matchmaking_queue(p_user_id text)
 RETURNS void AS $$
 BEGIN
+  PERFORM public.assert_current_user(p_user_id);
   IF public.is_current_user_banned() THEN
     RAISE EXCEPTION 'User is banned';
   END IF;
@@ -76,6 +79,7 @@ DECLARE
   v_status text;
   v_is_public boolean;
 BEGIN
+  PERFORM public.assert_current_user(p_user_id);
   IF public.is_current_user_banned() THEN
     RAISE EXCEPTION 'User is banned';
   END IF;
@@ -146,6 +150,7 @@ DECLARE
   v_new_host_id text;
   v_new_host_name text;
 BEGIN
+  PERFORM public.assert_current_user(p_user_id);
   IF public.is_current_user_banned() THEN
     RAISE EXCEPTION 'User is banned';
   END IF;
@@ -246,6 +251,7 @@ DECLARE
   v_ready_states jsonb;
   v_updated_room jsonb;
 BEGIN
+  PERFORM public.assert_current_user(p_user_id);
   IF public.is_current_user_banned() THEN
     RAISE EXCEPTION 'User is banned';
   END IF;
@@ -309,7 +315,7 @@ BEGIN
     RETURN false; -- Room not found
   END IF;
 
-  IF v_room_host != p_host_id AND v_room_host != auth.uid()::text THEN
+  IF v_room_host != p_host_id OR v_room_host != auth.uid()::text OR p_kicked_user_id = v_room_host THEN
     RETURN false; -- Not authorized
   END IF;
 
@@ -338,17 +344,18 @@ DECLARE
   v_opponent RECORD;
   v_room_id text;
 BEGIN
+  PERFORM public.assert_current_user(p_user_id);
   IF public.is_current_user_banned() THEN
     RAISE EXCEPTION 'User is banned';
   END IF;
 
-  -- Ensure the calling player is still waiting in the queue
-  IF NOT EXISTS (
-    SELECT 1 FROM public.matchmaking_queue
-    WHERE user_id = p_user_id AND status = 'waiting'
-  ) THEN
+  -- Derive matchmaking inputs from the caller's waiting queue row.
+  SELECT elo INTO p_elo FROM public.matchmaking_queue
+  WHERE user_id = p_user_id AND status = 'waiting';
+  IF p_elo IS NULL THEN
     RETURN;
   END IF;
+  p_range := greatest(0, least(COALESCE(p_range, 0), 500));
 
   SELECT * INTO v_opponent
   FROM public.matchmaking_queue
@@ -384,7 +391,7 @@ GRANT EXECUTE ON FUNCTION public.find_match(text, integer, integer) TO authentic
 CREATE OR REPLACE FUNCTION public.find_room_by_code(p_code text)
 RETURNS SETOF public.match_rooms AS $$
 BEGIN
-  IF public.is_current_user_banned() THEN
+  IF auth.uid() IS NULL OR public.is_current_user_banned() OR p_code !~ '^[A-Za-z0-9]{6}$' THEN
     RAISE EXCEPTION 'User is banned';
   END IF;
 
@@ -392,12 +399,13 @@ BEGIN
   SELECT *
   FROM public.match_rooms
   WHERE status = 'waiting'
-    AND UPPER(id) LIKE UPPER(p_code) || '%'
+    AND UPPER(id) = UPPER(p_code)
   LIMIT 1;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-GRANT EXECUTE ON FUNCTION public.find_room_by_code(text) TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION public.find_room_by_code(text) TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.find_room_by_code(text) FROM anon, PUBLIC;
 
 -- 10. List public waiting rooms
 CREATE OR REPLACE FUNCTION public.list_public_rooms()
@@ -594,4 +602,17 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION public.migrate_host_on_disconnect(text, text) TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.migrate_host_on_disconnect(text, text) FROM authenticated, anon, PUBLIC;
+
+-- Do not inherit PostgreSQL's default PUBLIC EXECUTE privilege for RPCs.
+REVOKE EXECUTE ON FUNCTION public.close_match_room(text, text) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.cleanup_user_rooms(text) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.leave_matchmaking_queue(text) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.join_match_room(text, text) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.leave_match_room(text, text) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.set_player_ready(text, text, boolean) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.kick_participant_from_room(text, text, text) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.find_match(text, integer, integer) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.list_public_rooms() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.transfer_room_host(text, text, text) FROM PUBLIC;
 

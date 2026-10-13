@@ -71,7 +71,7 @@ export async function joinQueue(userId: string): Promise<boolean> {
 
 	// Cleanup any existing queue entry via RPC
 	try {
-		const { error: leaveErr } = await supabase.rpc("leave_matchmaking_queue", { p_user_id: userId });
+		const { error: leaveErr } = await supabase.rpc("safe_leave_matchmaking_queue");
 		if (leaveErr) {
 			console.warn("Non-fatal matchmaking queue leave error:", leaveErr);
 		}
@@ -90,7 +90,7 @@ export async function joinQueue(userId: string): Promise<boolean> {
 }
 
 export async function leaveQueue(userId: string): Promise<void> {
-	const { error } = await supabase.rpc("leave_matchmaking_queue", { p_user_id: userId });
+	const { error } = await supabase.rpc("safe_leave_matchmaking_queue");
 	if (error) {
 		console.error("Failed to leave matchmaking queue:", error);
 		void logSystemError("leaveQueue RPC failure", { error: error.message, code: error.code, userId });
@@ -149,29 +149,21 @@ export async function createRoom(
 	enableTimeMultiplier: boolean = false,
 	isPublic: boolean = true,
 ): Promise<MatchRoom | null> {
-	const { data, error } = await supabase
-		.from("match_rooms")
-		.insert({
-			id: roomId,
-			player1_id: hostId,
-			player2_id: guestId,
-			participants: guestId ? [hostId, guestId] : [hostId],
-			scores: {},
-			ready_states: { [hostId]: true },
-			targets: targets,
-			total_rounds: totalRounds,
-			round_seconds: roundSeconds,
-			no_moving: noMoving,
-			no_panning: noPanning,
-			no_zooming: noZooming,
-			enable_time_multiplier: enableTimeMultiplier,
-			selected_maps: selectedMaps,
-			status: status,
-			mode: mode,
-			is_public: isPublic,
-		})
-		.select()
-		.single();
+	const { data, error } = await supabase.rpc("safe_create_match_room", {
+		p_room_id: roomId,
+		p_player2_id: guestId,
+		p_targets: targets,
+		p_total_rounds: totalRounds,
+		p_round_seconds: roundSeconds,
+		p_no_moving: noMoving,
+		p_no_panning: noPanning,
+		p_no_zooming: noZooming,
+		p_selected_maps: selectedMaps,
+		p_status: status,
+		p_mode: mode,
+		p_enable_time_multiplier: enableTimeMultiplier,
+		p_is_public: isPublic,
+	});
 	if (error) {
 		console.error("Supabase room creation error:", error);
 		return null;
@@ -210,10 +202,7 @@ export async function joinRoom(
 	// Requirement: Ensure each player can only join to 1 match at a time
 	await cleanupUserRooms(userId);
 
-	const { data, error } = await supabase.rpc("join_match_room", {
-		p_room_id: roomId,
-		p_user_id: userId,
-	});
+	const { data, error } = await supabase.rpc("safe_join_match_room", { p_room_id: roomId });
 
 	if (error) {
 		console.error("Failed to join room via RPC:", error);
@@ -226,10 +215,7 @@ export async function leaveRoom(
 	roomId: string,
 	userId: string,
 ): Promise<boolean> {
-	const { data, error } = await supabase.rpc("leave_match_room", {
-		p_room_id: roomId,
-		p_user_id: userId,
-	});
+	const { data, error } = await supabase.rpc("safe_leave_match_room", { p_room_id: roomId });
 
 	if (error) {
 		console.error("Failed to leave room via RPC:", error);
@@ -253,13 +239,20 @@ export async function updateRoom(
 			| "participants"
 			| "targets"
 			| "is_public"
+			| "total_rounds"
+			| "round_seconds"
+			| "no_moving"
+			| "no_panning"
+			| "no_zooming"
+			| "enable_time_multiplier"
+			| "selected_maps"
 		>
 	>,
 ): Promise<void> {
-	const { error } = await supabase
-		.from("match_rooms")
-		.update(updates as any)
-		.eq("id", roomId);
+	const { error } = await supabase.rpc("safe_update_match_room", {
+		p_room_id: roomId,
+		p_updates: updates,
+	});
 	if (error) {
 		console.error("Failed to update room:", error);
 		void logSystemError("updateRoom database failure", { error: error.message, code: error.code, roomId, updates });
@@ -271,10 +264,7 @@ export async function deleteRoom(
 	roomId: string,
 	userId: string,
 ): Promise<void> {
-	const { error } = await supabase.rpc("close_match_room", {
-		p_room_id: roomId,
-		p_user_id: userId,
-	});
+	const { error } = await supabase.rpc("safe_close_match_room", { p_room_id: roomId });
 	if (error) {
 		console.error("Failed to delete room:", error);
 		void logSystemError("deleteRoom RPC failure", { error: error.message, code: error.code, roomId, userId });
@@ -283,7 +273,7 @@ export async function deleteRoom(
 }
 
 export async function cleanupUserRooms(userId: string): Promise<void> {
-	const { error } = await supabase.rpc("cleanup_user_rooms", { p_user_id: userId });
+	const { error } = await supabase.rpc("safe_cleanup_my_rooms");
 	if (error) {
 		console.error("Failed to cleanup user rooms:", error);
 		void logSystemError("cleanupUserRooms RPC failure", { error: error.message, code: error.code, userId });
@@ -295,10 +285,9 @@ export async function kickParticipantFromRoom(
 	kickedUserId: string,
 	hostId: string,
 ): Promise<boolean> {
-	const { data, error } = await supabase.rpc("kick_participant_from_room", {
+	const { data, error } = await supabase.rpc("safe_kick_participant_from_room", {
 		p_room_id: roomId,
 		p_kicked_user_id: kickedUserId,
-		p_host_id: hostId,
 	});
 
 	if (error) {
@@ -406,11 +395,7 @@ export function startMatchmaking(
 
 			/* 2. try to find a match ourselves */
 			const myElo = entry?.elo ?? 1300;
-			const { data: rpc, error: rpcErr } = await supabase.rpc("find_match", {
-				p_user_id: userId,
-				p_elo: myElo,
-				p_range: currentRange,
-			});
+			const { data: rpc, error: rpcErr } = await supabase.rpc("safe_find_match", { p_range: currentRange });
 
 			if (rpcErr) {
 				console.error("Failed to query find_match RPC:", rpcErr);

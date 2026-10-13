@@ -129,10 +129,7 @@ export default function MatchFinishedOverlay({
     let cancelled = false;
     (async () => {
       try {
-        const { data } = await supabase
-          .from('profiles')
-          .select('id, avatar_url, display_name')
-          .in('id', ids as any[]);
+		const { data } = await supabase.rpc('get_public_profiles', { p_ids: ids });
         if (!cancelled && data) {
           const map: Record<string, { avatarUrl: string | null; displayName: string | null }> = {};
           data.forEach((r: any) => {

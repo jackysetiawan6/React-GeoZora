@@ -31,6 +31,8 @@ import {
 	broadcastToRoom,
 	unsubscribeRoom,
 	updateRoom,
+	createRoom,
+	deleteRoom,
 	generateTargets,
 	fetchRoom,
 	type MatchRoom,
@@ -802,10 +804,7 @@ export default function Match({
 		const loadNames = async () => {
 			if (missingIds.length > 0) {
 				try {
-					const { data } = await supabase
-						.from("profiles")
-						.select("id, display_name")
-						.in("id", missingIds);
+					const { data } = await supabase.rpc("get_public_profiles", { p_ids: missingIds });
 
 					if (cancelled) return;
 					(data || []).forEach((row: any) => {
@@ -1219,13 +1218,9 @@ export default function Match({
 				if (shouldWriteHistory) {
 					let opponentName = "Opponent";
 					try {
-						const { data: oppProfile } = await supabase
-							.from("profiles")
-							.select("display_name")
-							.eq("id", h2hOpponentId)
-							.single();
-						if (oppProfile?.display_name) {
-							opponentName = oppProfile.display_name;
+						const { data: opponentProfiles } = await supabase.rpc("get_public_profiles", { p_ids: [h2hOpponentId] });
+						if (Array.isArray(opponentProfiles) && opponentProfiles[0]?.display_name) {
+							opponentName = opponentProfiles[0].display_name;
 						}
 					} catch (e) {
 						console.error("Failed to fetch opponent name for match history:", e);
@@ -1396,13 +1391,7 @@ export default function Match({
 				);
 
 				if (backingRoomId) {
-					const { error: deleteError } = await supabase
-						.from("match_rooms")
-						.delete()
-						.eq("id", backingRoomId);
-					if (deleteError) {
-						console.error("Failed to delete classic backing room:", deleteError);
-					}
+					try { await deleteRoom(backingRoomId, user.uid); } catch (error) { console.error("Failed to delete classic backing room:", error); }
 				}
 			} else if (roomMode === "vsAI") {
 				const result: "win" | "loss" | "draw" =
@@ -1455,13 +1444,7 @@ export default function Match({
 				);
 
 				if (backingRoomId) {
-					const { error: deleteError } = await supabase
-						.from("match_rooms")
-						.delete()
-						.eq("id", backingRoomId);
-					if (deleteError) {
-						console.error("Failed to delete VS AI backing room:", deleteError);
-					}
+					try { await deleteRoom(backingRoomId, user.uid); } catch (error) { console.error("Failed to delete VS AI backing room:", error); }
 				}
 			}
 		};
@@ -1532,14 +1515,8 @@ export default function Match({
 			setMatchEndedReason(reason);
 
 			try {
-				await updateRoom(localRoom.id, {
-					status: "completed",
-					winner_id: null,
-					scores: {},
-					player1_score: 0,
-					player2_score: 0,
-				});
-
+				// This is a local recovery path. Match scores and completion are only
+				// persisted by submit_match_guess, never by a client-side error handler.
 				const completedRoom = {
 					...localRoom,
 					status: "completed" as const,
@@ -1605,56 +1582,18 @@ export default function Match({
 
 					const backingRoomId = `${mode}_${user.uid}_${Date.now()}`;
 					
-					// Cleanup any orphaned classic/vsAI rooms for this user
-					try {
-						await supabase
-							.from("match_rooms")
-							.delete()
-							.eq("player1_id", user.uid)
-							.eq("mode", mode);
-					} catch (e) {
-						console.warn(`Failed to cleanup old ${mode} rooms:`, e);
-					}
+					const backingRoom = await createRoom(
+						backingRoomId, user.uid, null, initialTargets, resolvedRounds, resolvedSeconds,
+						false, false, false, stableSelectedMaps, "active", mode, enableTimeMultiplier, false,
+					);
 
-					const { error: roomError } = await supabase
-						.from("match_rooms")
-						.insert({
-							id: backingRoomId,
-							player1_id: user.uid,
-							targets: initialTargets,
-							total_rounds: resolvedRounds,
-							round_seconds: resolvedSeconds,
-							no_moving: false,
-							no_panning: false,
-							no_zooming: false,
-							enable_time_multiplier: enableTimeMultiplier,
-							selected_maps: stableSelectedMaps,
-							status: "playing",
-							current_round: 1,
-							mode: mode,
-						});
-
-					if (roomError) {
-						console.error(`Failed to create backing room for ${mode} match:`, roomError);
+					if (!backingRoom) {
+						console.error(`Failed to create backing room for ${mode} match.`);
 						toast.warning("Server connection failed. Telemetry and statistics might not be saved.");
 						setBackingRoomId(null);
 					} else {
 						setBackingRoomId(backingRoomId);
-						setLocalRoom({
-							id: backingRoomId,
-							player1_id: user.uid,
-							targets: initialTargets,
-							total_rounds: resolvedRounds,
-							round_seconds: resolvedSeconds,
-							no_moving: false,
-							no_panning: false,
-							no_zooming: false,
-							enable_time_multiplier: enableTimeMultiplier,
-							selected_maps: stableSelectedMaps,
-							status: "playing",
-							current_round: 1,
-							mode: mode,
-						} as any);
+						setLocalRoom(backingRoom);
 					}
 
 					if (mode === "vsAI") {
@@ -1833,8 +1772,6 @@ export default function Match({
 								}
 							}
 
-							void updateRoom(room.id, roomUpdates);
-
 							setMatchEndedReason("Opponent disconnected.");
 							setPhase("finished");
 						} catch (err) {
@@ -1981,8 +1918,6 @@ export default function Match({
 												roomUpdates.player2_score = finalScoresMap[p2] ?? 0;
 											}
 										}
-
-										void updateRoom(currentRoom.id, roomUpdates);
 
 										setMatchEndedReason("Opponent disconnected.");
 										setPhase("finished");
@@ -2167,14 +2102,8 @@ export default function Match({
 
 				setPhase("playing");
 
-				// Persist current round to DB for room matches so server/other clients can stay in sync
-				if ((isRoomMatch || roomMode === "vsAI") && localRoom) {
-					try {
-						await updateRoom(localRoom.id, { current_round: roundNumber, status: "active" });
-					} catch (err) {
-						console.error("Failed to update room current_round:", err);
-					}
-				}
+				// submit_match_guess advances the authoritative round only after every
+				// participant has submitted. The UI must not race it with a client write.
 
 				const nextPreloadTarget = await getTargetForRound(
 					roundNumber + 1,
@@ -2252,21 +2181,8 @@ export default function Match({
 				finalScoresMap[h2hOpponentId] = p2Final;
 			}
 
-			const roomUpdates: Record<string, any> = {
-				scores: finalScoresMap,
-				status: "completed",
-				winner_id: (roomMode === "vsAI" && winnerId === "bot") ? null : winnerId,
-			};
-
-			if (roomMode !== "creatorRoom" && roomMode !== "classic" && roomMode !== "vsAI") {
-				roomUpdates.player1_score = h2hIsHost ? p1Final : p2Final;
-				roomUpdates.player2_score = h2hIsHost ? p2Final : p1Final;
-			} else if (roomMode === "vsAI") {
-				roomUpdates.player1_score = p1Final;
-				roomUpdates.player2_score = p2Final;
-			}
-
-			await updateRoom(localRoom.id, roomUpdates);
+			// submit_match_guess is the sole authority for scores, winners, and completion.
+			// Never overwrite its result with a client-computed aggregate here.
 			setLocalRoom(prev =>
 				prev ? { ...prev, status: "completed", winner_id: winnerId, scores: finalScoresMap } : prev,
 			);
@@ -2441,7 +2357,7 @@ export default function Match({
 
 				if (error) {
 					console.error("Error calling submit_match_guess RPC:", error);
-					toast.error("Failed to submit guess to server. Match sync may be affected.");
+					toast.error(`Guess was not saved: ${error.message || "server validation failed"}`);
 					void logSystemError("submit_match_guess RPC failure", {
 						roomId: backingRoomId,
 						round: currentRoundIndex,
@@ -2788,12 +2704,8 @@ export default function Match({
 						broadcastToRoom(channelRef.current, { type: "reset_match" });
 					}
 					const resetPayload = {
-						player1_score: 0,
-						player2_score: 0,
-						scores: {},
 						ready_states: {},
 						status: "waiting" as const,
-						winner_id: null,
 						current_round: 0,
 						targets: [],
 					};
@@ -2825,11 +2737,7 @@ export default function Match({
 					});
 				}
 				await updateRoom(localRoom.id, {
-					player1_score: 0,
-					player2_score: 0,
-					scores: {},
 					status: "waiting",
-					winner_id: null,
 					current_round: 0,
 					targets: newTargets as any,
 				});
@@ -3112,11 +3020,8 @@ export default function Match({
 									if (user?.uid) {
 										localStorage.removeItem(`geozora_match_progress_${user.uid}`);
 									}
-									if (selectedMode === "classic" && backingRoomId) {
-										void supabase
-											.from("match_rooms")
-											.delete()
-											.eq("id", backingRoomId);
+									if (selectedMode === "classic" && backingRoomId && user?.uid) {
+										void deleteRoom(backingRoomId, user.uid);
 									} else if (selectedMode === "headToHead" && backingRoomId) {
 										if (channelRef.current) {
 											broadcastToRoom(channelRef.current, {
@@ -3127,13 +3032,7 @@ export default function Match({
 												reason: "Opponent disconnected.",
 											} as any);
 										}
-										const finalScoresMap = { ...allScoresRef.current };
-										if (user?.uid) finalScoresMap[user.uid] = -1;
-										void updateRoom(backingRoomId, {
-											status: "completed",
-											winner_id: h2hOpponentId,
-											scores: finalScoresMap,
-										});
+										void supabase.rpc("safe_forfeit_match", { p_room_id: backingRoomId });
 									}
 									onBackToDashboard?.();
 								}}
